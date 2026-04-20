@@ -8,6 +8,7 @@ import { getTitle } from '@/lib/titles'
 import { submitDuelAnswer } from '../actions'
 import { CheckCircle, XCircle, Swords, Clock, Trophy, Shield } from 'lucide-react'
 import { playSuccess, playError, playTick } from '@/lib/sounds'
+import { getAudioManager } from '@/lib/audioManager'
 
 interface DuelProfile {
   id: string; username: string; first_name: string; avatar_url: string | null; frame: string | null; title: string | null
@@ -106,6 +107,41 @@ export default function DuelClient({ userId, duel, duelQuestions }: {
   const alreadyDone = duel.status === 'finished' || (isChallenger ? duel.challenger_finished : duel.opponent_finished)
 
   const currentDQ = pendingQs[current]
+
+  // ── Duel audio orchestration ──────────────────────────────────────────────
+  useEffect(() => {
+    const am = getAudioManager()
+    if (!am) return
+
+    if (duel.status === 'active' && !alreadyDone && !finished) {
+      // Active duel in progress → battle theme
+      am.setBackgroundTrack('batalla')
+    } else if (duel.status === 'finished') {
+      // Already finished on mount → just main, no one-shot replay
+      am.setBackgroundTrack('main')
+    } else {
+      am.setBackgroundTrack('main')
+    }
+    // No cleanup — AudioController takes over on next route change
+  }, [duel.status, alreadyDone, finished])
+
+  // When the duel finishes mid-session, fire victoria/derrota one-shot then main
+  const justFinishedRef = useRef(false)
+  useEffect(() => {
+    const am = getAudioManager()
+    if (!am || !finished || result === null || justFinishedRef.current) return
+    justFinishedRef.current = true
+
+    am.setBackgroundTrack(null) // stop batalla immediately
+    if (result === 'draw') {
+      am.setBackgroundTrack('main')
+    } else {
+      const isWin = (result === 'challenger' && isChallenger) || (result === 'opponent' && !isChallenger)
+      am.playOneShot(isWin ? 'victoria' : 'derrota', () => {
+        am.setBackgroundTrack('main')
+      })
+    }
+  }, [finished, result, isChallenger])
 
   async function handleSelect(option: Option) {
     if (!currentDQ || loading || showResult) return

@@ -3,6 +3,8 @@ import { Bebas_Neue, Nunito } from "next/font/google";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
+import AudioController from "@/components/AudioController";
+import MusicToggle from "@/components/MusicToggle";
 
 const bebas = Bebas_Neue({
   variable: "--font-bebas",
@@ -60,6 +62,8 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-[#08051a] text-white font-nunito">
         <ServiceWorkerRegister />
+        <AudioController />
+        <MusicToggle />
         <main className="flex-1 relative z-10">{children}</main>
         <BottomNav />
       </body>

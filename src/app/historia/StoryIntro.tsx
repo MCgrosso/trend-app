@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { ChevronLeft, BookOpen, Sparkles, CheckCircle2 } from 'lucide-react'
 import GoldenParticles from '@/components/GoldenParticles'
 import BibleCharacter from '@/components/BibleCharacter'
-import { startAmbient, stopAmbient } from '@/lib/storyMusic'
 
 interface Chapter {
   id: string
@@ -31,7 +30,6 @@ export default function StoryIntro({
   const [typed, setTyped]         = useState('')
   const [showTip, setShowTip]     = useState(false)
   const [showCta, setShowCta]     = useState(false)
-  const [musicOn, setMusicOn]     = useState(false)
 
   // Book-open transition
   useEffect(() => {
@@ -56,18 +54,7 @@ export default function StoryIntro({
     return () => clearInterval(id)
   }, [bookOpen, chapter.introduction])
 
-  // Ambient music — needs user interaction to start
-  function handleEnableMusic() {
-    if (musicOn) { stopAmbient(); setMusicOn(false) }
-    else         { startAmbient(); setMusicOn(true)  }
-  }
-
-  useEffect(() => {
-    return () => { stopAmbient() }
-  }, [])
-
   function handleStart() {
-    stopAmbient()
     router.push('/historia/jugar')
   }
 
@@ -108,10 +95,6 @@ export default function StoryIntro({
         <button onClick={() => router.push('/')}
           className="text-yellow-200/70 hover:text-yellow-100 flex items-center gap-1 text-sm transition-colors">
           <ChevronLeft size={18} /> Volver
-        </button>
-        <button onClick={handleEnableMusic}
-          className="text-yellow-200/70 hover:text-yellow-100 text-xs px-3 py-1.5 rounded-full border border-yellow-700/40 transition-colors">
-          {musicOn ? '🔊 Silenciar' : '🎵 Música'}
         </button>
       </header>
 
