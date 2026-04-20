@@ -58,6 +58,54 @@ body {
   animation: shake 0.4s ease-in-out;
 }
 
+/* ── Avatar frames – basic (static) ── */
+.frame-white   { box-shadow: 0 0 0 3px #ffffff; }
+.frame-blue    { box-shadow: 0 0 0 3px #60a5fa; }
+.frame-emerald { box-shadow: 0 0 0 3px #34d399; }
+.frame-red     { box-shadow: 0 0 0 3px #f87171; }
+.frame-orange  { box-shadow: 0 0 0 3px #fb923c; }
+.frame-purple  { box-shadow: 0 0 0 3px #a855f7; }
+.frame-pink    { box-shadow: 0 0 0 3px #f472b6; }
+
+/* ── Avatar frames – special (animated) ── */
+@keyframes frame-flames {
+  0%, 100% { box-shadow: 0 0 0 3px #f97316, 0 0 10px 3px rgba(249,115,22,.55); }
+  50%       { box-shadow: 0 0 0 3px #dc2626, 0 0 18px 6px rgba(220,38,38,.65); }
+}
+.frame-flames { animation: frame-flames 1.1s ease-in-out infinite; }
+
+@keyframes frame-galaxia {
+  0%   { box-shadow: 0 0 0 3px #7c3aed, 0 0 12px 3px rgba(124,58,237,.5); }
+  33%  { box-shadow: 0 0 0 3px #3b82f6, 0 0 12px 3px rgba(59,130,246,.5); }
+  66%  { box-shadow: 0 0 0 3px #ec4899, 0 0 12px 3px rgba(236,72,153,.5); }
+  100% { box-shadow: 0 0 0 3px #7c3aed, 0 0 12px 3px rgba(124,58,237,.5); }
+}
+.frame-galaxia { animation: frame-galaxia 2.4s linear infinite; }
+
+@keyframes frame-rainbow {
+  0%   { box-shadow: 0 0 0 3px #ef4444; }
+  14%  { box-shadow: 0 0 0 3px #f97316; }
+  28%  { box-shadow: 0 0 0 3px #eab308; }
+  42%  { box-shadow: 0 0 0 3px #22c55e; }
+  57%  { box-shadow: 0 0 0 3px #3b82f6; }
+  71%  { box-shadow: 0 0 0 3px #a855f7; }
+  85%  { box-shadow: 0 0 0 3px #ec4899; }
+  100% { box-shadow: 0 0 0 3px #ef4444; }
+}
+.frame-rainbow { animation: frame-rainbow 2.5s linear infinite; }
+
+@keyframes frame-golden {
+  0%, 100% { box-shadow: 0 0 0 3px #ca8a04, 0 0  8px 2px rgba(202,138,4,.45); }
+  50%       { box-shadow: 0 0 0 3px #fbbf24, 0 0 20px 6px rgba(251,191,36,.75); }
+}
+.frame-golden { animation: frame-golden 1.6s ease-in-out infinite; }
+
+@keyframes frame-divine {
+  0%, 100% { box-shadow: 0 0 0 3px #cbd5e1, 0 0  8px 3px rgba(203,213,225,.4); }
+  50%       { box-shadow: 0 0 0 3px #ffffff, 0 0 24px 8px rgba(255,255,255,.8); }
+}
+.frame-divine { animation: frame-divine 2.1s ease-in-out infinite; }
+
 /* --- Timer / question slide --- */
 @keyframes slide-in {
   from { transform: translateX(36px); opacity: 0; }

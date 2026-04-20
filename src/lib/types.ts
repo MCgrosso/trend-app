@@ -9,6 +9,7 @@ export interface Profile {
   role: 'user' | 'admin'
   created_at: string
   last_played_at: string | null
+  frame: string | null
 }
 
 export interface Question {
@@ -48,6 +49,7 @@ export interface WeeklyProfile {
   first_name: string
   last_name: string
   avatar_url: string | null
+  frame: string | null
   weekly_score: number
 }
 

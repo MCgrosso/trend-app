@@ -62,6 +62,14 @@ export default async function ProfilePage() {
   if ((profile?.streak_days ?? 0) >= 5) unlockedSpecial.push('profeta')
   if ((profile?.total_score ?? 0) >= 200) unlockedSpecial.push('apostol')
 
+  // Marcos desbloqueados (básicos siempre disponibles)
+  const unlockedFrames = ['white', 'blue', 'emerald', 'red', 'orange', 'purple', 'pink']
+  if ((profile?.streak_days ?? 0) >= 3)   unlockedFrames.push('flames')
+  if ((profile?.total_score  ?? 0) >= 100) unlockedFrames.push('galaxia')
+  if ((profile?.streak_days ?? 0) >= 5)   unlockedFrames.push('rainbow')
+  if (isWeeklyChampion)                    unlockedFrames.push('golden')
+  if ((profile?.total_score  ?? 0) >= 300) unlockedFrames.push('divine')
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0f0f1a] via-[#1a1a2e] to-[#0d1b2a]">
       <header className="px-4 pt-8 pb-4 flex items-center justify-between max-w-lg mx-auto">
@@ -79,7 +87,9 @@ export default async function ProfilePage() {
             userId={user.id}
             avatarUrl={profile?.avatar_url ?? null}
             firstName={profile?.first_name ?? null}
+            frame={profile?.frame ?? 'white'}
             unlockedSpecial={unlockedSpecial}
+            unlockedFrames={unlockedFrames}
           />
           {profile?.role === 'admin' && (
             <Link href="/admin" className="inline-flex items-center gap-1 mt-4 bg-yellow-500/20 text-yellow-400 text-xs px-3 py-1 rounded-full border border-yellow-500/30 hover:bg-yellow-500/30 transition-colors">
