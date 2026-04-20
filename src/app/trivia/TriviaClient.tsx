@@ -78,7 +78,7 @@ export default function TriviaClient({ questions, answeredMap, initialWeeklyScor
   // Stable refs to avoid stale closures in timer
   const localAnswersRef  = useRef(localAnswers)
   localAnswersRef.current = localAnswers
-  const handleSelectRef = useRef<(opt: Option) => Promise<void>>()
+  const handleSelectRef = useRef<((opt: Option) => Promise<void>) | null>(null)
 
   async function handleSelect(option: Option) {
     if (localAnswersRef.current[question?.id] || loading) return

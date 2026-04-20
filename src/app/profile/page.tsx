@@ -82,7 +82,18 @@ export default async function ProfilePage() {
         <div className="bg-gradient-to-r from-purple-900/60 to-blue-900/60 rounded-2xl p-6 border border-purple-700/30 text-center">
           <h2 className="text-xl font-bold text-white mb-0.5">{profile?.first_name} {profile?.last_name}</h2>
           <p className="text-purple-300 text-sm">@{profile?.username}</p>
-          <p className="text-gray-400 text-xs mt-1 mb-5">{user.email}</p>
+          <p className="text-gray-400 text-xs mt-1">{user.email}</p>
+          {profile?.role === 'admin' && (
+            <Link href="/admin" className="inline-flex items-center gap-1 mt-3 bg-yellow-500/20 text-yellow-400 text-xs px-3 py-1 rounded-full border border-yellow-500/30 hover:bg-yellow-500/30 transition-colors">
+              <Shield size={12} />
+              Panel Admin
+            </Link>
+          )}
+        </div>
+
+        {/* Personalizar avatar y marco */}
+        <div className="bg-gray-800/40 border border-gray-700/40 rounded-2xl p-5">
+          <h3 className="font-semibold text-white mb-4 text-center">Personalizar perfil</h3>
           <AvatarSection
             userId={user.id}
             avatarUrl={profile?.avatar_url ?? null}
@@ -91,12 +102,6 @@ export default async function ProfilePage() {
             unlockedSpecial={unlockedSpecial}
             unlockedFrames={unlockedFrames}
           />
-          {profile?.role === 'admin' && (
-            <Link href="/admin" className="inline-flex items-center gap-1 mt-4 bg-yellow-500/20 text-yellow-400 text-xs px-3 py-1 rounded-full border border-yellow-500/30 hover:bg-yellow-500/30 transition-colors">
-              <Shield size={12} />
-              Panel Admin
-            </Link>
-          )}
         </div>
 
         {/* Medalla semanal */}

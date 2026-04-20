@@ -12,22 +12,26 @@ interface Particle {
 
 export default function Confetti({ active }: { active: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const rafRef    = useRef<number>()
+  const rafRef    = useRef<number | null>(null)
   const particles = useRef<Particle[]>([])
 
   useEffect(() => {
     if (!active) {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current)
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
       return
     }
 
     const canvas = canvasRef.current
     if (!canvas) return
+
     canvas.width  = window.innerWidth
     canvas.height = window.innerHeight
 
+    const w = canvas.width
+    const h = canvas.height
+
     particles.current = Array.from({ length: 64 }, () => ({
-      x: Math.random() * canvas.width,
+      x: Math.random() * w,
       y: -10 - Math.random() * 40,
       vx: (Math.random() - 0.5) * 5,
       vy: Math.random() * 3 + 2,
@@ -41,8 +45,8 @@ export default function Confetti({ active }: { active: boolean }) {
     const ctx2d = canvas.getContext('2d')!
 
     function draw() {
-      ctx2d.clearRect(0, 0, canvas.width, canvas.height)
-      particles.current = particles.current.filter(p => p.y < canvas.height + 20)
+      ctx2d.clearRect(0, 0, w, h)
+      particles.current = particles.current.filter(p => p.y < h + 20)
 
       for (const p of particles.current) {
         p.x += p.vx
@@ -61,7 +65,7 @@ export default function Confetti({ active }: { active: boolean }) {
     }
 
     draw()
-    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current) }
+    return () => { if (rafRef.current !== null) cancelAnimationFrame(rafRef.current) }
   }, [active])
 
   if (!active) return null

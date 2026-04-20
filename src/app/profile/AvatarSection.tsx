@@ -22,6 +22,7 @@ export default function AvatarSection({
   unlockedSpecial: string[]
   unlockedFrames: string[]
 }) {
+  const [tab,           setTab]           = useState<'avatar' | 'marco'>('avatar')
   const [selectedAvatar, setSelectedAvatar] = useState(avatarUrl ?? '')
   const [selectedFrame,  setSelectedFrame]  = useState(initialFrame ?? 'white')
   const [saving, setSaving] = useState(false)
@@ -41,10 +42,11 @@ export default function AvatarSection({
 
   const hasChanges =
     selectedAvatar !== (avatarUrl ?? '') ||
-    selectedFrame  !== (initialFrame  ?? 'white')
+    selectedFrame  !== (initialFrame ?? 'white')
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
+      {/* Vista previa */}
       <Avatar
         avatarUrl={selectedAvatar || null}
         firstName={firstName}
@@ -53,114 +55,146 @@ export default function AvatarSection({
         className="mx-auto"
       />
 
-      {/* Avatares regulares */}
-      <AvatarPicker selected={selectedAvatar} onSelect={setSelectedAvatar} />
-
-      {/* Avatares especiales */}
-      <div className="space-y-2">
-        <p className="text-xs text-gray-400 font-medium text-center">Avatares especiales</p>
-        <div className="flex gap-4 justify-center flex-wrap">
-          {SPECIAL_AVATARS.map(a => {
-            const unlocked = unlockedSpecial.includes(a.id)
-            return (
-              <button
-                key={a.id}
-                type="button"
-                disabled={!unlocked}
-                onClick={() => unlocked && setSelectedAvatar(a.id)}
-                title={unlocked ? a.label : `Bloqueado — ${a.description}`}
-                className="flex flex-col items-center gap-1.5 focus:outline-none"
-              >
-                <div
-                  className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl transition-all duration-150 ${
-                    !unlocked
-                      ? 'opacity-30 grayscale ring-2 ring-white/10'
-                      : selectedAvatar === a.id
-                        ? 'ring-4 ring-white/80 scale-110 shadow-lg'
-                        : 'ring-2 ring-white/20 opacity-80 hover:opacity-100 hover:scale-105'
-                  }`}
-                  style={{ backgroundColor: unlocked ? a.bg : '#374151' }}
-                >
-                  {unlocked ? a.emoji : '🔒'}
-                </div>
-                <span className={`text-[11px] font-medium max-w-[60px] text-center leading-tight ${
-                  !unlocked ? 'text-gray-600' : selectedAvatar === a.id ? 'text-white' : 'text-gray-400'
-                }`}>
-                  {unlocked ? a.label : a.description}
-                </span>
-              </button>
-            )
-          })}
-        </div>
+      {/* Pestañas */}
+      <div className="flex gap-1 p-1 bg-gray-900/60 rounded-xl border border-gray-700/50">
+        <button
+          onClick={() => setTab('avatar')}
+          className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
+            tab === 'avatar' ? 'bg-purple-600 text-white shadow' : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          Avatar
+        </button>
+        <button
+          onClick={() => setTab('marco')}
+          className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
+            tab === 'marco' ? 'bg-purple-600 text-white shadow' : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          Marco
+        </button>
       </div>
 
-      {/* Marcos básicos */}
-      <div className="space-y-2">
-        <p className="text-xs text-gray-400 font-medium text-center">Marcos</p>
-        <div className="flex gap-3 justify-center flex-wrap">
-          {BASIC_FRAMES.map(f => (
-            <button
-              key={f.id}
-              type="button"
-              onClick={() => setSelectedFrame(f.id)}
-              title={f.label}
-              className="flex flex-col items-center gap-1 focus:outline-none"
-            >
-              <div
-                className={`w-9 h-9 rounded-full bg-gray-700 flex items-center justify-center transition-all duration-150 ${f.cssClass} ${
-                  selectedFrame === f.id
-                    ? 'scale-125 brightness-110'
-                    : 'opacity-60 hover:opacity-90 hover:scale-110'
-                }`}
-              />
-              <span className={`text-[10px] max-w-[44px] text-center leading-tight ${
-                selectedFrame === f.id ? 'text-white' : 'text-gray-500'
-              }`}>
-                {f.label}
-              </span>
-            </button>
-          ))}
-        </div>
-      </div>
+      {/* ── Pestaña Avatar ── */}
+      {tab === 'avatar' && (
+        <div className="space-y-4">
+          <AvatarPicker selected={selectedAvatar} onSelect={setSelectedAvatar} />
 
-      {/* Marcos especiales */}
-      <div className="space-y-2">
-        <p className="text-xs text-gray-400 font-medium text-center">Marcos especiales</p>
-        <div className="flex gap-3 justify-center flex-wrap">
-          {SPECIAL_FRAMES.map(f => {
-            const unlocked = unlockedFrames.includes(f.id)
-            return (
-              <button
-                key={f.id}
-                type="button"
-                disabled={!unlocked}
-                onClick={() => unlocked && setSelectedFrame(f.id)}
-                title={unlocked ? f.label : `Bloqueado — ${f.unlock}`}
-                className="flex flex-col items-center gap-1 focus:outline-none"
-              >
-                <div
-                  className={`w-9 h-9 rounded-full flex items-center justify-center text-base transition-all duration-150 ${
-                    !unlocked
-                      ? 'bg-gray-800 opacity-25 grayscale'
-                      : `bg-gray-700 ${f.cssClass} ${
-                          selectedFrame === f.id
-                            ? 'scale-125 brightness-110'
-                            : 'opacity-75 hover:opacity-100 hover:scale-110'
-                        }`
-                  }`}
-                >
-                  {unlocked ? f.emoji : '🔒'}
-                </div>
-                <span className={`text-[10px] max-w-[48px] text-center leading-tight ${
-                  !unlocked ? 'text-gray-700' : selectedFrame === f.id ? 'text-white' : 'text-gray-500'
-                }`}>
-                  {unlocked ? f.label : f.unlock}
-                </span>
-              </button>
-            )
-          })}
+          <div className="space-y-2">
+            <p className="text-xs text-gray-400 font-medium text-center">Avatares especiales</p>
+            <div className="flex gap-4 justify-center flex-wrap">
+              {SPECIAL_AVATARS.map(a => {
+                const unlocked = unlockedSpecial.includes(a.id)
+                return (
+                  <button
+                    key={a.id}
+                    type="button"
+                    disabled={!unlocked}
+                    onClick={() => unlocked && setSelectedAvatar(a.id)}
+                    title={unlocked ? a.label : `Bloqueado — ${a.description}`}
+                    className="flex flex-col items-center gap-1.5 focus:outline-none"
+                  >
+                    <div
+                      className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl transition-all duration-150 ${
+                        !unlocked
+                          ? 'opacity-30 grayscale ring-2 ring-white/10'
+                          : selectedAvatar === a.id
+                            ? 'ring-4 ring-white/80 scale-110 shadow-lg'
+                            : 'ring-2 ring-white/20 opacity-70 hover:opacity-100 hover:scale-105'
+                      }`}
+                      style={{ backgroundColor: unlocked ? a.bg : '#374151' }}
+                    >
+                      {unlocked ? a.emoji : '🔒'}
+                    </div>
+                    <span className={`text-[11px] font-medium max-w-[60px] text-center leading-tight ${
+                      !unlocked ? 'text-gray-600' : selectedAvatar === a.id ? 'text-white' : 'text-gray-400'
+                    }`}>
+                      {unlocked ? a.label : a.description}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* ── Pestaña Marco ── */}
+      {tab === 'marco' && (
+        <div className="space-y-5">
+          {/* Básicos */}
+          <div className="space-y-3">
+            <p className="text-xs text-gray-400 font-medium text-center">Marcos básicos</p>
+            <div className="grid grid-cols-4 gap-3">
+              {BASIC_FRAMES.map(f => {
+                const active = selectedFrame === f.id
+                return (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => setSelectedFrame(f.id)}
+                    className="flex flex-col items-center gap-2 focus:outline-none"
+                  >
+                    <div
+                      className={`w-14 h-14 rounded-full bg-gray-800 flex items-center justify-center transition-all duration-150 ${
+                        active ? 'scale-110' : 'opacity-70 hover:opacity-100 hover:scale-105'
+                      }`}
+                      style={{ boxShadow: `0 0 0 ${active ? '4px' : '3px'} ${f.previewColor}` }}
+                    >
+                      {active && <span className="text-white text-lg font-bold">✓</span>}
+                    </div>
+                    <span className={`text-[11px] text-center leading-tight ${
+                      active ? 'text-white font-semibold' : 'text-gray-500'
+                    }`}>
+                      {f.label}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Especiales */}
+          <div className="space-y-3">
+            <p className="text-xs text-gray-400 font-medium text-center">Marcos especiales</p>
+            <div className="grid grid-cols-3 gap-3">
+              {SPECIAL_FRAMES.map(f => {
+                const unlocked = unlockedFrames.includes(f.id)
+                const active   = selectedFrame === f.id
+                return (
+                  <button
+                    key={f.id}
+                    type="button"
+                    disabled={!unlocked}
+                    onClick={() => unlocked && setSelectedFrame(f.id)}
+                    className="flex flex-col items-center gap-2 focus:outline-none"
+                  >
+                    <div
+                      className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl transition-all duration-150 ${
+                        !unlocked
+                          ? 'bg-gray-800 opacity-25 grayscale'
+                          : `bg-gray-800 ${f.cssClass} ${active ? 'scale-110' : 'opacity-80 hover:opacity-100 hover:scale-105'}`
+                      }`}
+                    >
+                      {!unlocked ? '🔒' : active ? '✓' : f.emoji}
+                    </div>
+                    <div className="text-center">
+                      <p className={`text-[11px] font-medium leading-tight ${
+                        !unlocked ? 'text-gray-700' : active ? 'text-white font-semibold' : 'text-gray-400'
+                      }`}>
+                        {f.emoji} {f.label}
+                      </p>
+                      {!unlocked && (
+                        <p className="text-[10px] text-gray-600 leading-tight mt-0.5">{f.unlock}</p>
+                      )}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       <button
         onClick={handleSave}
