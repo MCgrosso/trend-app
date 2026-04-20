@@ -10,11 +10,11 @@ export interface Profile {
   created_at: string
   last_played_at: string | null
   frame: string | null
-  duel_wins: number
-  duel_losses: number
-  duel_draws: number
-  duel_win_streak: number
-  duel_best_streak: number
+  wins: number
+  losses: number
+  draws: number
+  win_streak: number
+  best_streak: number
   title: string | null
 }
 

@@ -62,7 +62,7 @@ export default async function ProfilePage() {
   if (correctAnswers >= 20) unlockedSpecial.push('guerrero')
   if ((profile?.streak_days ?? 0) >= 5) unlockedSpecial.push('profeta')
   if ((profile?.total_score ?? 0) >= 200) unlockedSpecial.push('apostol')
-  if ((profile?.duel_win_streak ?? 0) >= 3 || (profile?.duel_best_streak ?? 0) >= 3) unlockedSpecial.push('campeon')
+  if ((profile?.win_streak ?? 0) >= 3 || (profile?.best_streak ?? 0) >= 3) unlockedSpecial.push('campeon')
 
   // Marcos desbloqueados (básicos siempre disponibles)
   const unlockedFrames = ['white', 'blue', 'emerald', 'red', 'orange', 'purple', 'pink']
@@ -73,8 +73,8 @@ export default async function ProfilePage() {
   if ((profile?.total_score  ?? 0) >= 300) unlockedFrames.push('divine')
 
   // Title & progress
-  const duelWins   = profile?.duel_wins   ?? 0
-  const duelStreak = profile?.duel_win_streak ?? 0
+  const duelWins   = profile?.wins   ?? 0
+  const duelStreak = profile?.win_streak ?? 0
   const title     = getTitle(profile?.title)
   const nextTitle  = getNextTitle(duelWins, duelStreak)
 
@@ -173,15 +173,15 @@ export default async function ProfilePage() {
 
           <div className="grid grid-cols-3 gap-3 mb-4">
             <div className="text-center">
-              <p className="text-xl font-bold text-green-400">{profile?.duel_wins ?? 0}</p>
+              <p className="text-xl font-bold text-green-400">{profile?.wins ?? 0}</p>
               <p className="text-xs text-gray-500">Victorias</p>
             </div>
             <div className="text-center">
-              <p className="text-xl font-bold text-red-400">{profile?.duel_losses ?? 0}</p>
+              <p className="text-xl font-bold text-red-400">{profile?.losses ?? 0}</p>
               <p className="text-xs text-gray-500">Derrotas</p>
             </div>
             <div className="text-center">
-              <p className="text-xl font-bold text-yellow-400">{profile?.duel_draws ?? 0}</p>
+              <p className="text-xl font-bold text-yellow-400">{profile?.draws ?? 0}</p>
               <p className="text-xs text-gray-500">Empates</p>
             </div>
           </div>
@@ -193,7 +193,7 @@ export default async function ProfilePage() {
             </div>
             <div>
               <span className="text-gray-400">Mejor racha </span>
-              <span className="font-bold text-purple-400">{profile?.duel_best_streak ?? 0}⚡</span>
+              <span className="font-bold text-purple-400">{profile?.best_streak ?? 0}⚡</span>
             </div>
           </div>
 

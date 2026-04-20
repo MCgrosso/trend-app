@@ -10,7 +10,7 @@ export async function searchUserByUsername(username: string) {
 
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, username, first_name, last_name, avatar_url, frame, duel_wins, title')
+    .select('id, username, first_name, last_name, avatar_url, frame, wins, title')
     .ilike('username', username.trim())
     .neq('id', user.id)
     .limit(5)

@@ -15,18 +15,14 @@ export default async function DuelosPage() {
     { data: profile },
     { data: duels },
     { data: dailyCountRaw },
-    { data: allPlayers },
-    { data: activeTodayRaw },
     { data: challengedTodayRaw },
   ] = await Promise.all([
-    // My profile
     supabase
       .from('profiles')
-      .select('id, username, first_name, avatar_url, frame, duel_wins, duel_losses, duel_draws, duel_win_streak, duel_best_streak, title')
+      .select('id, username, first_name, avatar_url, frame, wins, losses, draws, win_streak, best_streak, title')
       .eq('id', user.id)
       .single(),
 
-    // My duels (pending + active + recent finished)
     supabase
       .from('duels')
       .select(`
@@ -38,22 +34,8 @@ export default async function DuelosPage() {
       .order('created_at', { ascending: false })
       .limit(20),
 
-    // Daily duel count
     supabase.rpc('get_daily_duel_count', { p_user_id: user.id }),
 
-    // All players ordered by total_score
-    supabase
-      .from('profiles')
-      .select('id, username, first_name, last_name, avatar_url, frame, title, total_score, duel_wins, duel_losses')
-      .order('total_score', { ascending: false }),
-
-    // Who answered at least once today (active today)
-    supabase
-      .from('answers')
-      .select('user_id')
-      .gte('answered_at', `${todayStr}T00:00:00.000Z`),
-
-    // Opponents challenged today by me (not cancelled/rejected)
     supabase
       .from('duels')
       .select('opponent_id')
@@ -62,8 +44,9 @@ export default async function DuelosPage() {
       .not('status', 'in', '(cancelled,rejected)'),
   ])
 
-  const activeTodayIds    = new Set((activeTodayRaw    ?? []).map((a: { user_id: string }) => a.user_id))
-  const challengedTodayIds = new Set((challengedTodayRaw ?? []).map((d: { opponent_id: string }) => d.opponent_id))
+  const challengedTodayIds = (challengedTodayRaw ?? []).map(
+    (d: { opponent_id: string }) => d.opponent_id
+  )
 
   return (
     <DuelosClient
@@ -71,9 +54,7 @@ export default async function DuelosPage() {
       profile={profile}
       duels={duels ?? []}
       dailyCount={dailyCountRaw ?? 0}
-      players={allPlayers ?? []}
-      activeTodayIds={[...activeTodayIds]}
-      challengedTodayIds={[...challengedTodayIds]}
+      challengedTodayIds={challengedTodayIds}
     />
   )
 }
