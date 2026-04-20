@@ -1,6 +1,6 @@
 {
-  "name": "TREND",
-  "short_name": "TREND",
+  "name": "#TREND",
+  "short_name": "#TREND",
   "description": "Trivias bíblicas para jóvenes",
   "start_url": "/",
   "display": "standalone",
