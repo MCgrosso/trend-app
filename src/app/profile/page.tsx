@@ -6,6 +6,8 @@ import LogoutButton from './LogoutButton'
 import AvatarSection from './AvatarSection'
 import { Star, Flame, Calendar, Shield, Swords, Trophy, Scroll, BookOpen } from 'lucide-react'
 import Logo from '@/components/Logo'
+import Stars from '@/components/Stars'
+import Avatar from '@/components/Avatar'
 import Link from 'next/link'
 import { getMedal } from '@/lib/medals'
 import { getTitle, getNextTitle, TITLES } from '@/lib/titles'
@@ -120,33 +122,52 @@ export default async function ProfilePage() {
   const biblePct = Math.round((completedChapters.length / BIBLE_TOTAL_CHAPTERS) * 10000) / 100
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0f0f1a] via-[#1a1a2e] to-[#0d1b2a]">
-      <header className="px-4 pt-8 pb-4 flex items-center justify-between max-w-lg mx-auto">
-        <Logo size="sm" />
-        <LogoutButton />
-      </header>
+    <div className="min-h-screen relative">
+      <Stars count={70} />
+
+      <div className="relative z-10">
+        <header className="px-4 pt-7 pb-4 flex items-center justify-between max-w-lg mx-auto">
+          <Logo size="sm" />
+          <LogoutButton />
+        </header>
 
       <div className="px-4 max-w-lg mx-auto space-y-5 pb-8">
         {/* Avatar + info */}
-        <div className="bg-gradient-to-r from-purple-900/60 to-blue-900/60 rounded-2xl p-6 border border-purple-700/30 text-center">
-          <h2 className="text-xl font-bold text-white mb-0.5">{profile?.first_name} {profile?.last_name}</h2>
-          <p className="text-purple-300 text-sm">@{profile?.username}</p>
-          <p className="text-gray-400 text-xs mt-1">{user.email}</p>
+        <div className="relative bg-gradient-to-br from-[#1a0a4e] via-[#0f0a2e] to-[#1a0a4e] rounded-3xl p-6 border border-purple-500/40 text-center overflow-hidden">
+          <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-purple-600/30 blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-10 -left-10 w-32 h-32 rounded-full bg-cyan-500/15 blur-3xl pointer-events-none" />
 
-          {/* Title badge */}
-          <div className="flex justify-center mt-3">
-            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold ${title.bgColor} ${title.borderColor} ${title.color}`}>
-              ⚔️ {title.label}
-              <span className={`text-[10px] font-medium ${title.rarityColor}`}>({title.rarity})</span>
-            </span>
+          <div className="relative">
+            <div className="flex justify-center mb-3">
+              <div className="animate-float">
+                <Avatar
+                  avatarUrl={profile?.avatar_url}
+                  firstName={profile?.first_name}
+                  size="lg"
+                  frame={profile?.frame ?? 'white'}
+                />
+              </div>
+            </div>
+
+            <h2 className="font-bebas text-3xl text-white leading-none">{profile?.first_name?.toUpperCase()} {profile?.last_name?.toUpperCase()}</h2>
+            <p className="text-cyan-300 text-sm mt-1">@{profile?.username}</p>
+            <p className="text-gray-400 text-xs mt-1">{user.email}</p>
+
+            {/* Title badge with rarity color */}
+            <div className="flex justify-center mt-3">
+              <span className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full border-2 text-sm font-bold ${title.bgColor} ${title.borderColor}`}>
+                <span className="text-base">⚔️</span>
+                <span className={title.specialClass ? title.specialClass : title.color}>{title.label}</span>
+                <span className={`text-[10px] font-bold uppercase tracking-wider ${title.rarityColor}`}>({title.rarity})</span>
+              </span>
+            </div>
+
+            {profile?.role === 'admin' && (
+              <Link href="/admin" className="inline-flex items-center gap-1 mt-3 bg-yellow-500/20 text-yellow-300 text-xs px-3 py-1 rounded-full border border-yellow-500/30 hover:bg-yellow-500/30 transition-colors">
+                <Shield size={12} /> Panel Admin
+              </Link>
+            )}
           </div>
-
-          {profile?.role === 'admin' && (
-            <Link href="/admin" className="inline-flex items-center gap-1 mt-3 bg-yellow-500/20 text-yellow-400 text-xs px-3 py-1 rounded-full border border-yellow-500/30 hover:bg-yellow-500/30 transition-colors">
-              <Shield size={12} />
-              Panel Admin
-            </Link>
-          )}
         </div>
 
         {/* Personalizar avatar y marco */}
@@ -324,20 +345,20 @@ export default async function ProfilePage() {
         </div>
 
         {/* Titles showcase */}
-        <div className="bg-gray-800/40 border border-gray-700/40 rounded-2xl p-5">
-          <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
-            <Trophy size={16} className="text-yellow-400" />
-            Todos los títulos
+        <div className="bg-[#0f0a2e]/80 border border-purple-700/40 rounded-2xl p-5">
+          <h3 className="font-bebas text-2xl text-white mb-3 flex items-center gap-2 leading-none">
+            <Trophy size={18} className="text-amber-400" />
+            TODOS LOS TÍTULOS
           </h3>
           <div className="space-y-2">
             {TITLES.map(t => {
               const unlocked = title.id === t.id || duelWins >= (t.winsRequired ?? 0) || (t.streakRequired && duelStreak >= t.streakRequired)
               return (
-                <div key={t.id} className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all ${
-                  unlocked ? `${t.bgColor} ${t.borderColor}` : 'bg-gray-800/30 border-gray-700/30 opacity-40'
+                <div key={t.id} className={`flex items-center gap-3 p-2.5 rounded-xl border-2 transition-all ${
+                  unlocked ? `${t.bgColor} ${t.borderColor}` : 'bg-gray-900/30 border-gray-800/30 opacity-40'
                 }`}>
-                  <span className={`text-sm font-bold ${t.color}`}>{t.label}</span>
-                  <span className={`text-[10px] ml-auto ${t.rarityColor}`}>{t.rarity}</span>
+                  <span className={`text-sm font-bold ${t.specialClass ?? t.color}`}>{t.label}</span>
+                  <span className={`text-[10px] ml-auto uppercase tracking-wider font-bold ${t.rarityColor}`}>{t.rarity}</span>
                   {!unlocked && <span className="text-gray-600 text-xs">🔒</span>}
                 </div>
               )
@@ -369,6 +390,7 @@ export default async function ProfilePage() {
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   )

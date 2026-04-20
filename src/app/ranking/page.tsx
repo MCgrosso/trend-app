@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { createClient } from '@/lib/supabase/server'
 import Logo from '@/components/Logo'
+import Stars from '@/components/Stars'
 import { Trophy } from 'lucide-react'
 import RankingClient from './RankingClient'
 
@@ -31,24 +32,28 @@ export default async function RankingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0f0f1a] via-[#1a1a2e] to-[#0d1b2a]">
-      <header className="px-4 pt-8 pb-4 max-w-lg mx-auto">
-        <Logo size="sm" />
-        <div className="flex items-center gap-2 mt-4">
-          <Trophy size={24} className="text-yellow-400" />
-          <h1 className="text-2xl font-bold text-white">Tabla de posiciones</h1>
-        </div>
-        <p className="text-gray-400 text-sm mt-1">Top jugadores del grupo</p>
-      </header>
+    <div className="min-h-screen relative">
+      <Stars count={70} />
 
-      <div className="px-4 max-w-lg mx-auto pb-8 space-y-3">
-        <RankingClient
-          globalTop10={globalTop10 ?? []}
-          weeklyAll={weeklyAll ?? []}
-          userId={user?.id ?? null}
-          userGlobalRank={userGlobalRank}
-          userGlobalProfile={userGlobalProfile}
-        />
+      <div className="relative z-10">
+        <header className="px-4 pt-7 pb-4 max-w-lg mx-auto">
+          <Logo size="sm" />
+          <div className="flex items-center gap-2 mt-4">
+            <Trophy size={26} className="text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]" />
+            <h1 className="font-bebas text-4xl text-white leading-none">RANKING</h1>
+          </div>
+          <p className="text-purple-300/70 text-xs uppercase tracking-widest font-semibold mt-1">Top jugadores del grupo</p>
+        </header>
+
+        <div className="px-4 max-w-lg mx-auto pb-8 space-y-3">
+          <RankingClient
+            globalTop10={globalTop10 ?? []}
+            weeklyAll={weeklyAll ?? []}
+            userId={user?.id ?? null}
+            userGlobalRank={userGlobalRank}
+            userGlobalProfile={userGlobalProfile}
+          />
+        </div>
       </div>
     </div>
   )

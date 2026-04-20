@@ -226,14 +226,14 @@ export default function TriviaClient({ questions, answeredMap, initialWeeklyScor
             <button
               key={q.id}
               onClick={() => advanceTo(i)}
-              className={`w-8 h-8 rounded-full text-xs font-bold transition-all border ${
+              className={`w-9 h-9 rounded-full text-xs font-bebas text-base transition-all border-2 ${
                 i === current
-                  ? 'border-purple-400 bg-purple-600 text-white'
+                  ? 'border-cyan-400 bg-purple-600 text-white shadow-[0_0_12px_rgba(0,212,255,0.6)]'
                   : ans
                     ? ans.is_correct
-                      ? 'border-green-600 bg-green-900/50 text-green-400'
-                      : 'border-red-600 bg-red-900/50 text-red-400'
-                    : 'border-gray-600 bg-gray-800/40 text-gray-400'
+                      ? 'border-emerald-500 bg-emerald-900/50 text-emerald-300'
+                      : 'border-red-500 bg-red-900/50 text-red-300'
+                    : 'border-purple-700/50 bg-[#0f0a2e] text-gray-400'
               }`}
             >
               {i + 1}
@@ -265,7 +265,7 @@ export default function TriviaClient({ questions, answeredMap, initialWeeklyScor
           </div>
         )}
 
-        <div className={`bg-gray-800/50 border border-gray-700/50 rounded-2xl p-5 ${cardAnim}`}>
+        <div className={`bg-gradient-to-br from-[#0f0a2e] to-[#1a0a4e] border-2 border-purple-500/50 rounded-2xl p-5 shadow-[0_0_30px_rgba(124,58,237,0.25)] ${cardAnim}`}>
           {/* Header row */}
           <div className="flex items-center gap-3 mb-4">
             <CircularTimer timeLeft={effectiveAnswer ? 0 : timeLeft} />
@@ -294,16 +294,16 @@ export default function TriviaClient({ questions, answeredMap, initialWeeklyScor
                   key={opt}
                   onClick={() => handleSelect(opt)}
                   disabled={!!effectiveAnswer || loading}
-                  className={`w-full text-left px-4 py-3.5 rounded-xl border transition-all duration-200 flex items-center gap-3 disabled:opacity-50 ${
+                  className={`w-full text-left px-4 py-3.5 rounded-xl border-2 transition-all duration-200 flex items-center gap-3 disabled:opacity-50 ${
                     showCorrect
-                      ? 'bg-green-900/40 border-green-500 text-green-200'
+                      ? 'bg-emerald-900/40 border-emerald-500 text-emerald-200 shadow-[0_0_16px_rgba(16,185,129,0.4)]'
                       : showWrong
-                        ? 'bg-red-900/40 border-red-500 text-red-200'
+                        ? 'bg-red-900/40 border-red-500 text-red-200 shadow-[0_0_16px_rgba(239,68,68,0.4)]'
                         : effectiveAnswer
-                          ? 'bg-gray-700/20 border-gray-600/30 text-gray-500 cursor-default'
+                          ? 'bg-[#0a071e]/60 border-purple-800/30 text-gray-500 cursor-default'
                           : loading
-                            ? 'bg-gray-700/40 border-gray-600/50 text-white cursor-wait'
-                            : 'bg-gray-700/40 border-gray-600/50 text-white hover:bg-gray-700/70 hover:border-purple-500/70 active:scale-[0.99]'
+                            ? 'bg-[#0a071e]/60 border-purple-700/50 text-white cursor-wait'
+                            : 'bg-[#0a071e]/60 border-purple-700/40 text-white hover:bg-purple-900/30 hover:border-cyan-400/70 hover:shadow-[0_0_14px_rgba(0,212,255,0.4)] active:scale-[0.99]'
                   }`}
                 >
                   <span className={`w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold border ${

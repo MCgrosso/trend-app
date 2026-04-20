@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import TriviaClient from './TriviaClient'
 import Logo from '@/components/Logo'
+import Stars from '@/components/Stars'
 
 export default async function TriviaPage() {
   const supabase = await createClient()
@@ -54,29 +55,33 @@ export default async function TriviaPage() {
   const initialWeeklyScore = (weekAnswers?.length ?? 0) * 10
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0f0f1a] via-[#1a1a2e] to-[#0d1b2a]">
-      <header className="px-4 pt-8 pb-4 max-w-lg mx-auto">
-        <Logo size="sm" />
-        <h1 className="text-2xl font-bold text-white mt-4">Trivias de hoy</h1>
-        <p className="text-gray-400 text-sm">
-          {new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
-        </p>
-      </header>
+    <div className="min-h-screen relative">
+      <Stars count={70} />
 
-      <div className="px-4 max-w-lg mx-auto pb-8">
-        {!questions || questions.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="text-5xl mb-4">📖</div>
-            <h2 className="text-xl font-semibold text-white mb-2">No hay preguntas hoy</h2>
-            <p className="text-gray-400 text-sm">El admin todavía no cargó las trivias de hoy. ¡Volvé más tarde!</p>
-          </div>
-        ) : (
-          <TriviaClient
-            questions={questions}
-            answeredMap={answeredMap}
-            initialWeeklyScore={initialWeeklyScore}
-          />
-        )}
+      <div className="relative z-10">
+        <header className="px-4 pt-7 pb-4 max-w-lg mx-auto">
+          <Logo size="sm" />
+          <h1 className="font-bebas text-4xl text-white mt-4 leading-none">TRIVIAS DE HOY</h1>
+          <p className="text-purple-300/70 text-xs uppercase tracking-widest font-semibold mt-1">
+            {new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
+          </p>
+        </header>
+
+        <div className="px-4 max-w-lg mx-auto pb-8">
+          {!questions || questions.length === 0 ? (
+            <div className="text-center py-16">
+              <div className="text-5xl mb-4">📖</div>
+              <h2 className="font-bebas text-2xl text-white mb-2">SIN PREGUNTAS HOY</h2>
+              <p className="text-gray-400 text-sm">El admin todavía no cargó las trivias de hoy. ¡Volvé más tarde!</p>
+            </div>
+          ) : (
+            <TriviaClient
+              questions={questions}
+              answeredMap={answeredMap}
+              initialWeeklyScore={initialWeeklyScore}
+            />
+          )}
+        </div>
       </div>
     </div>
   )

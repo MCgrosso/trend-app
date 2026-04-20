@@ -4,10 +4,11 @@ export interface Title {
   color: string
   bgColor: string
   borderColor: string
-  rarity: 'común' | 'raro' | 'épico' | 'legendario'
+  rarity: 'común' | 'raro' | 'épico' | 'legendario' | 'mítico'
   rarityColor: string
   rarityBg: string
   requirement: string
+  specialClass?: string
   winsRequired?: number
   streakRequired?: number
 }
@@ -27,85 +28,88 @@ export const TITLES: Title[] = [
   {
     id: 'aprendiz',
     label: 'Aprendiz',
-    color: 'text-blue-300',
-    bgColor: 'bg-blue-900/30',
-    borderColor: 'border-blue-700/50',
+    color: 'text-emerald-300',
+    bgColor: 'bg-emerald-900/30',
+    borderColor: 'border-emerald-700/50',
     rarity: 'común',
-    rarityColor: 'text-blue-400',
-    rarityBg: 'bg-blue-950',
-    requirement: '5 victorias en duelos',
+    rarityColor: 'text-emerald-400',
+    rarityBg: 'bg-emerald-950',
+    requirement: '5 victorias',
     winsRequired: 5,
   },
   {
     id: 'guerrero',
     label: 'Guerrero',
-    color: 'text-green-300',
-    bgColor: 'bg-green-900/30',
-    borderColor: 'border-green-700/50',
+    color: 'text-blue-300',
+    bgColor: 'bg-blue-900/30',
+    borderColor: 'border-blue-700/50',
     rarity: 'raro',
-    rarityColor: 'text-green-400',
-    rarityBg: 'bg-green-950',
-    requirement: '15 victorias en duelos',
+    rarityColor: 'text-blue-400',
+    rarityBg: 'bg-blue-950',
+    requirement: '15 victorias',
     winsRequired: 15,
   },
   {
-    id: 'profeta',
-    label: 'Profeta de Fuego',
-    color: 'text-indigo-300',
-    bgColor: 'bg-indigo-900/30',
-    borderColor: 'border-indigo-700/50',
+    id: 'conocedor',
+    label: 'Conocedor',
+    color: 'text-purple-300',
+    bgColor: 'bg-purple-900/30',
+    borderColor: 'border-purple-700/50',
     rarity: 'raro',
-    rarityColor: 'text-indigo-400',
-    rarityBg: 'bg-indigo-950',
+    rarityColor: 'text-purple-400',
+    rarityBg: 'bg-purple-950',
+    requirement: '30 victorias',
+    winsRequired: 30,
+  },
+  {
+    id: 'profeta',
+    label: 'Profeta',
+    color: 'text-amber-300',
+    bgColor: 'bg-amber-900/30',
+    borderColor: 'border-amber-700/50',
+    rarity: 'épico',
+    rarityColor: 'text-amber-400',
+    rarityBg: 'bg-amber-950',
     requirement: 'Racha de 3 victorias seguidas',
     streakRequired: 3,
   },
   {
-    id: 'campeon',
-    label: 'Campeón',
-    color: 'text-purple-300',
-    bgColor: 'bg-purple-900/30',
-    borderColor: 'border-purple-700/50',
-    rarity: 'épico',
-    rarityColor: 'text-purple-400',
-    rarityBg: 'bg-purple-950',
-    requirement: '30 victorias en duelos',
-    winsRequired: 30,
-  },
-  {
     id: 'leyenda',
     label: 'Leyenda',
-    color: 'text-orange-300',
-    bgColor: 'bg-orange-900/30',
-    borderColor: 'border-orange-700/50',
-    rarity: 'épico',
-    rarityColor: 'text-orange-400',
-    rarityBg: 'bg-orange-950',
-    requirement: '50 victorias en duelos',
-    winsRequired: 50,
-  },
-  {
-    id: 'invencible',
-    label: 'Invencible',
-    color: 'text-red-300',
+    color: 'text-red-400',
     bgColor: 'bg-red-900/30',
     borderColor: 'border-red-700/50',
     rarity: 'épico',
     rarityColor: 'text-red-400',
     rarityBg: 'bg-red-950',
+    requirement: '50 victorias',
+    specialClass: 'animate-red-glow',
+    winsRequired: 50,
+  },
+  {
+    id: 'invicto',
+    label: 'Campeón Invicto',
+    color: '',
+    bgColor: 'bg-gradient-to-r from-red-900/30 via-purple-900/30 to-blue-900/30',
+    borderColor: 'border-purple-600/60',
+    rarity: 'legendario',
+    rarityColor: 'text-pink-400',
+    rarityBg: 'bg-pink-950',
     requirement: 'Racha de 10 victorias seguidas',
+    specialClass: 'animate-rainbow font-bold',
     streakRequired: 10,
   },
   {
     id: 'rey',
     label: 'Rey de Reyes',
-    color: 'text-yellow-300',
-    bgColor: 'bg-yellow-900/30',
-    borderColor: 'border-yellow-600/60',
-    rarity: 'legendario',
-    rarityColor: 'text-yellow-400',
+    color: '',
+    bgColor: 'bg-yellow-900/40',
+    borderColor: 'border-yellow-500/70',
+    rarity: 'mítico',
+    rarityColor: 'text-yellow-300',
     rarityBg: 'bg-yellow-950',
-    requirement: '100 victorias en duelos',
+    requirement: '100 victorias',
+    specialClass: 'animate-shimmer font-bold',
     winsRequired: 100,
   },
 ]
@@ -115,13 +119,13 @@ export function getTitle(titleId: string | null | undefined): Title {
 }
 
 export function computeTitle(wins: number, streak: number): Title {
-  if (wins >= 100) return TITLES.find(t => t.id === 'rey')!
-  if (streak >= 10) return TITLES.find(t => t.id === 'invencible')!
-  if (wins >= 50) return TITLES.find(t => t.id === 'leyenda')!
-  if (wins >= 30) return TITLES.find(t => t.id === 'campeon')!
-  if (streak >= 3) return TITLES.find(t => t.id === 'profeta')!
-  if (wins >= 15) return TITLES.find(t => t.id === 'guerrero')!
-  if (wins >= 5) return TITLES.find(t => t.id === 'aprendiz')!
+  if (wins >= 100)   return TITLES.find(t => t.id === 'rey')!
+  if (streak >= 10)  return TITLES.find(t => t.id === 'invicto')!
+  if (wins >= 50)    return TITLES.find(t => t.id === 'leyenda')!
+  if (streak >= 3)   return TITLES.find(t => t.id === 'profeta')!
+  if (wins >= 30)    return TITLES.find(t => t.id === 'conocedor')!
+  if (wins >= 15)    return TITLES.find(t => t.id === 'guerrero')!
+  if (wins >= 5)     return TITLES.find(t => t.id === 'aprendiz')!
   return TITLES[0]
 }
 
@@ -133,13 +137,13 @@ interface NextTitleInfo {
 }
 
 export function getNextTitle(wins: number, streak: number): NextTitleInfo | null {
-  if (wins < 5) return { title: TITLES.find(t => t.id === 'aprendiz')!, progress: wins, target: 5, label: 'victorias' }
-  if (streak < 3 && wins < 15) return { title: TITLES.find(t => t.id === 'profeta')!, progress: streak, target: 3, label: 'racha' }
-  if (wins < 15) return { title: TITLES.find(t => t.id === 'guerrero')!, progress: wins, target: 15, label: 'victorias' }
-  if (wins < 30) return { title: TITLES.find(t => t.id === 'campeon')!, progress: wins, target: 30, label: 'victorias' }
-  if (streak < 10) return { title: TITLES.find(t => t.id === 'invencible')!, progress: streak, target: 10, label: 'racha' }
-  if (wins < 50) return { title: TITLES.find(t => t.id === 'leyenda')!, progress: wins, target: 50, label: 'victorias' }
-  if (wins < 100) return { title: TITLES.find(t => t.id === 'rey')!, progress: wins, target: 100, label: 'victorias' }
+  if (wins < 5)   return { title: TITLES.find(t => t.id === 'aprendiz')!,  progress: wins,   target: 5,   label: 'victorias' }
+  if (wins < 15)  return { title: TITLES.find(t => t.id === 'guerrero')!,  progress: wins,   target: 15,  label: 'victorias' }
+  if (wins < 30)  return { title: TITLES.find(t => t.id === 'conocedor')!, progress: wins,   target: 30,  label: 'victorias' }
+  if (streak < 3 && wins < 50) return { title: TITLES.find(t => t.id === 'profeta')!, progress: streak, target: 3, label: 'racha' }
+  if (wins < 50)  return { title: TITLES.find(t => t.id === 'leyenda')!,   progress: wins,   target: 50,  label: 'victorias' }
+  if (streak < 10 && wins < 100) return { title: TITLES.find(t => t.id === 'invicto')!, progress: streak, target: 10, label: 'racha' }
+  if (wins < 100) return { title: TITLES.find(t => t.id === 'rey')!,       progress: wins,   target: 100, label: 'victorias' }
   return null
 }
 

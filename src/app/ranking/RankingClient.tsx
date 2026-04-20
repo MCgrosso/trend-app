@@ -56,26 +56,26 @@ export default function RankingClient({
   return (
     <>
       {/* Tabs */}
-      <div className="flex gap-1 p-1 bg-gray-800/60 rounded-xl border border-gray-700/40 mb-4">
+      <div className="flex gap-1 p-1 bg-[#0f0a2e]/80 rounded-xl border border-purple-700/40 mb-4">
         <button
           onClick={() => setTab('global')}
-          className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
+          className={`flex-1 py-2 rounded-lg text-sm font-bold uppercase tracking-wider transition-all ${
             tab === 'global'
-              ? 'bg-purple-600 text-white shadow'
-              : 'text-gray-400 hover:text-white'
+              ? 'bg-gradient-to-r from-purple-600 to-purple-500 text-white shadow-[0_0_16px_rgba(124,58,237,0.5)]'
+              : 'text-gray-500 hover:text-white'
           }`}
         >
           Global
         </button>
         <button
           onClick={() => setTab('semanal')}
-          className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
+          className={`flex-1 py-2 rounded-lg text-sm font-bold uppercase tracking-wider transition-all ${
             tab === 'semanal'
-              ? 'bg-purple-600 text-white shadow'
-              : 'text-gray-400 hover:text-white'
+              ? 'bg-gradient-to-r from-purple-600 to-purple-500 text-white shadow-[0_0_16px_rgba(124,58,237,0.5)]'
+              : 'text-gray-500 hover:text-white'
           }`}
         >
-          Esta semana
+          Semana
         </button>
       </div>
 
@@ -96,10 +96,10 @@ export default function RankingClient({
               return (
                 <div
                   key={p.id}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 ${
                     isMe
-                      ? 'bg-purple-900/40 border-purple-500/60 shadow-lg shadow-purple-900/20'
-                      : 'bg-gray-800/40 border-gray-700/40'
+                      ? 'bg-gradient-to-r from-purple-900/60 to-[#1a0a4e] border-purple-400/70 shadow-[0_0_20px_rgba(124,58,237,0.4)]'
+                      : 'bg-[#0f0a2e]/70 border-purple-800/30'
                   }`}
                 >
                   <div className="w-8 flex items-center justify-center flex-shrink-0">
@@ -228,26 +228,47 @@ function Podium({
   third:  { avatarUrl: string | null; frame: string | null; firstName: string; username: string; score: number }
 }) {
   return (
-    <div className="grid grid-cols-3 gap-2 mb-6 pt-2">
-      <div className="flex flex-col items-center pt-6">
-        <Avatar avatarUrl={second.avatarUrl} firstName={second.firstName} size="md" frame={second.frame} className="shadow-lg" />
-        <Medal size={20} className="text-gray-300 mt-1" />
-        <p className="text-xs text-gray-300 font-medium mt-0.5 text-center truncate w-full px-1">{second.username}</p>
-        <p className="text-xs text-yellow-400 font-bold">{second.score} pts</p>
-      </div>
-      <div className="flex flex-col items-center">
-        <div className="ring-4 ring-yellow-400/30 rounded-full shadow-xl">
-          <Avatar avatarUrl={first.avatarUrl} firstName={first.firstName} size="lg" frame={first.frame} />
+    <div className="relative mb-6 pt-4">
+      <div className="absolute inset-x-0 -top-4 h-32 bg-gradient-radial from-amber-500/15 to-transparent blur-2xl pointer-events-none" />
+
+      <div className="relative grid grid-cols-3 gap-2 items-end">
+        {/* 2nd */}
+        <div className="animate-podium-2 flex flex-col items-center">
+          <Avatar avatarUrl={second.avatarUrl} firstName={second.firstName} size="md" frame={second.frame} />
+          <p className="text-xs text-gray-200 font-bold mt-1 text-center truncate w-full px-1">{second.username}</p>
+          <p className="text-xs text-amber-300 font-bold">{second.score} pts</p>
+          <div className="mt-2 w-full h-16 rounded-t-xl bg-gradient-to-b from-gray-300 via-gray-400 to-gray-600 flex flex-col items-center justify-center border-2 border-gray-300/50 shadow-[0_0_18px_rgba(229,231,235,0.4)]">
+            <Medal size={20} className="text-white drop-shadow" />
+            <span className="font-bebas text-2xl text-white leading-none">2</span>
+          </div>
         </div>
-        <Trophy size={22} className="text-yellow-400 mt-1" />
-        <p className="text-sm text-white font-bold mt-0.5 text-center truncate w-full px-1">{first.username}</p>
-        <p className="text-sm text-yellow-400 font-bold">{first.score} pts</p>
-      </div>
-      <div className="flex flex-col items-center pt-8">
-        <Avatar avatarUrl={third.avatarUrl} firstName={third.firstName} size="md" frame={third.frame} className="shadow-lg" />
-        <Medal size={20} className="text-orange-400 mt-1" />
-        <p className="text-xs text-gray-300 font-medium mt-0.5 text-center truncate w-full px-1">{third.username}</p>
-        <p className="text-xs text-yellow-400 font-bold">{third.score} pts</p>
+
+        {/* 1st */}
+        <div className="animate-podium-1 flex flex-col items-center">
+          <div className="relative">
+            <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-2xl animate-spark">👑</span>
+            <div className="rounded-full ring-4 ring-amber-400/60 shadow-[0_0_30px_rgba(245,158,11,0.6)]">
+              <Avatar avatarUrl={first.avatarUrl} firstName={first.firstName} size="lg" frame={first.frame} />
+            </div>
+          </div>
+          <p className="text-sm font-bold mt-1 text-center truncate w-full px-1 animate-shimmer font-bebas text-base">{first.username}</p>
+          <p className="text-sm text-amber-300 font-bold">{first.score} pts</p>
+          <div className="mt-2 w-full h-24 rounded-t-xl bg-gradient-to-b from-amber-300 via-amber-500 to-amber-700 flex flex-col items-center justify-center border-2 border-amber-300/70 shadow-[0_0_28px_rgba(245,158,11,0.6)]">
+            <Trophy size={26} className="text-white drop-shadow" />
+            <span className="font-bebas text-3xl text-white leading-none">1</span>
+          </div>
+        </div>
+
+        {/* 3rd */}
+        <div className="animate-podium-3 flex flex-col items-center">
+          <Avatar avatarUrl={third.avatarUrl} firstName={third.firstName} size="md" frame={third.frame} />
+          <p className="text-xs text-gray-200 font-bold mt-1 text-center truncate w-full px-1">{third.username}</p>
+          <p className="text-xs text-amber-300 font-bold">{third.score} pts</p>
+          <div className="mt-2 w-full h-12 rounded-t-xl bg-gradient-to-b from-orange-400 via-orange-600 to-orange-800 flex flex-col items-center justify-center border-2 border-orange-400/50 shadow-[0_0_18px_rgba(249,115,22,0.4)]">
+            <Medal size={18} className="text-white drop-shadow" />
+            <span className="font-bebas text-xl text-white leading-none">3</span>
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -267,7 +288,7 @@ function OutOfTopCard({
       <div className="border-t border-gray-700/50 pt-3 mb-3 text-center">
         <span className="text-gray-500 text-xs">Tu posición</span>
       </div>
-      <div className="flex items-center gap-3 px-4 py-3 rounded-xl border bg-purple-900/40 border-purple-500/60">
+      <div className="flex items-center gap-3 px-4 py-3 rounded-xl border-2 bg-gradient-to-r from-purple-900/60 to-[#1a0a4e] border-purple-400/70 shadow-[0_0_20px_rgba(124,58,237,0.4)]">
         <div className="w-8 flex items-center justify-center">
           <span className="text-gray-400 text-sm font-bold">#{rank}</span>
         </div>
