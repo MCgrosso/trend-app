@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import LogoutButton from './LogoutButton'
 import AvatarSection from './AvatarSection'
+import BioEditor from './BioEditor'
 import { Star, Flame, Calendar, Shield, Swords, Trophy, Scroll, BookOpen } from 'lucide-react'
 import Logo from '@/components/Logo'
 import Stars from '@/components/Stars'
@@ -171,16 +172,21 @@ export default async function ProfilePage() {
         </div>
 
         {/* Personalizar avatar y marco */}
-        <div className="bg-gray-800/40 border border-gray-700/40 rounded-2xl p-5">
-          <h3 className="font-semibold text-white mb-4 text-center">Personalizar perfil</h3>
-          <AvatarSection
-            userId={user.id}
-            avatarUrl={profile?.avatar_url ?? null}
-            firstName={profile?.first_name ?? null}
-            frame={profile?.frame ?? 'white'}
-            unlockedSpecial={unlockedSpecial}
-            unlockedFrames={unlockedFrames}
-          />
+        <div className="bg-[#0f0a2e]/80 border border-purple-700/40 rounded-2xl p-5 space-y-5">
+          <h3 className="font-bebas text-2xl text-white text-center leading-none">PERSONALIZAR PERFIL</h3>
+
+          <BioEditor userId={user.id} initialBio={profile?.bio ?? ''} />
+
+          <div className="border-t border-purple-800/40 pt-4">
+            <AvatarSection
+              userId={user.id}
+              avatarUrl={profile?.avatar_url ?? null}
+              firstName={profile?.first_name ?? null}
+              frame={profile?.frame ?? 'white'}
+              unlockedSpecial={unlockedSpecial}
+              unlockedFrames={unlockedFrames}
+            />
+          </div>
         </div>
 
         {/* Medalla semanal */}

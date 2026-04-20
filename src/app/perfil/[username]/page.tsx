@@ -1,0 +1,95 @@
+export const dynamic = 'force-dynamic'
+
+import { createClient } from '@/lib/supabase/server'
+import { notFound } from 'next/navigation'
+import PublicProfile from './PublicProfile'
+
+export default async function PerfilPublicoPage({
+  params,
+}: {
+  params: Promise<{ username: string }>
+}) {
+  const { username } = await params
+  const supabase = await createClient()
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id, username, first_name, last_name, avatar_url, frame, title, bio, total_score, streak_days, wins, losses, draws, win_streak, best_streak, created_at')
+    .ilike('username', username)
+    .maybeSingle()
+
+  if (!profile) notFound()
+
+  // Weekly score → medal
+  const now = new Date()
+  const dayOfWeek = now.getUTCDay()
+  const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+  const weekStart = new Date(now)
+  weekStart.setUTCDate(weekStart.getUTCDate() - daysFromMonday)
+  weekStart.setUTCHours(0, 0, 0, 0)
+
+  const { data: weeklyAnswers } = await supabase
+    .from('answers')
+    .select('is_correct')
+    .eq('user_id', profile.id)
+    .eq('is_correct', true)
+    .gte('answered_at', weekStart.toISOString())
+
+  const weeklyScore = (weeklyAnswers?.length ?? 0) * 10
+
+  const { data: weeklyAll } = await supabase.rpc('get_weekly_ranking')
+  const isWeeklyChampion = (weeklyAll?.[0]?.id === profile.id) && weeklyScore > 0
+
+  // Story chapters completed
+  const { data: allChapters } = await supabase
+    .from('story_chapters')
+    .select('id, book, chapter, title, character_emoji')
+    .order('week_start', { ascending: true })
+
+  const { data: storyAnswers } = await supabase
+    .from('story_answers')
+    .select('chapter_id')
+    .eq('user_id', profile.id)
+
+  const { data: storyQs } = await supabase
+    .from('questions')
+    .select('story_chapter_id')
+    .not('story_chapter_id', 'is', null)
+
+  const qCountByChapter = new Map<string, number>()
+  for (const q of storyQs ?? []) {
+    const id = q.story_chapter_id as string
+    qCountByChapter.set(id, (qCountByChapter.get(id) ?? 0) + 1)
+  }
+
+  const answeredCountByChapter = new Map<string, number>()
+  for (const a of storyAnswers ?? []) {
+    answeredCountByChapter.set(a.chapter_id, (answeredCountByChapter.get(a.chapter_id) ?? 0) + 1)
+  }
+
+  const completedChapters = (allChapters ?? []).filter(c => {
+    const total    = qCountByChapter.get(c.id) ?? 0
+    const answered = answeredCountByChapter.get(c.id) ?? 0
+    return total > 0 && answered >= total
+  })
+
+  // Global rank
+  const { data: ranking } = await supabase
+    .from('profiles')
+    .select('id')
+    .order('total_score', { ascending: false })
+  const userRank = (ranking?.findIndex(p => p.id === profile.id) ?? -1) + 1
+
+  return (
+    <PublicProfile
+      profile={profile}
+      isMe={authUser?.id === profile.id}
+      isLoggedIn={!!authUser}
+      weeklyScore={weeklyScore}
+      isWeeklyChampion={isWeeklyChampion}
+      completedChapters={completedChapters}
+      globalRank={userRank}
+    />
+  )
+}

@@ -16,6 +16,7 @@ export interface Profile {
   win_streak: number
   best_streak: number
   title: string | null
+  bio: string | null
 }
 
 export interface Duel {

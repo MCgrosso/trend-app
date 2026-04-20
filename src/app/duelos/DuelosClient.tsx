@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import Avatar from '@/components/Avatar'
 import { createClient } from '@/lib/supabase/client'
 import { getTitle, DUEL_CATEGORIES } from '@/lib/titles'
@@ -93,18 +94,20 @@ function PlayerCard({
           {rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`}
         </span>
 
-        <Avatar avatarUrl={player.avatar_url} firstName={player.first_name} size="sm" frame={player.frame} />
+        <Link href={`/perfil/${player.username}`} className="flex items-center gap-3 flex-1 min-w-0 group">
+          <Avatar avatarUrl={player.avatar_url} firstName={player.first_name} size="sm" frame={player.frame} />
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <p className="text-white font-semibold text-sm truncate">{player.first_name} {player.last_name}</p>
-            {isMe && <span className="text-[10px] bg-purple-700/60 text-purple-200 px-1.5 py-0.5 rounded-full font-medium">Tú</span>}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <p className="text-white font-semibold text-sm truncate group-hover:text-cyan-300 transition-colors">{player.first_name} {player.last_name}</p>
+              {isMe && <span className="text-[10px] bg-purple-700/60 text-purple-200 px-1.5 py-0.5 rounded-full font-medium">Tú</span>}
+            </div>
+            <p className="text-gray-500 text-xs group-hover:text-cyan-400/80 transition-colors">@{player.username}</p>
+            <span className={`inline-flex items-center gap-1 mt-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${title.bgColor} ${title.borderColor} ${title.color}`}>
+              ⚔️ {title.label}
+            </span>
           </div>
-          <p className="text-gray-500 text-xs">@{player.username}</p>
-          <span className={`inline-flex items-center gap-1 mt-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${title.bgColor} ${title.borderColor} ${title.color}`}>
-            ⚔️ {title.label}
-          </span>
-        </div>
+        </Link>
 
         <div className="text-right flex-shrink-0 pr-3">
           <div className="flex items-center gap-1 justify-end">
@@ -252,10 +255,13 @@ function CategoryModal({
 
 export default function DuelosClient({ userId, profile, duels, dailyCount, challengedTodayIds }: Props) {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const challengeQueryId = searchParams.get('challenge')
   const [modal, setModal]               = useState<Modal>('none')
   const [target, setTarget]             = useState<Player | null>(null)
   const [acceptingDuel, setAcceptingDuel] = useState<DuelRow | null>(null)
   const [globalErr, setGlobalErr]       = useState<string | null>(null)
+  const [autoChallengeHandled, setAutoChallengeHandled] = useState(false)
 
   // ── Player list (fetched client-side) ──────────────────────────────────────
   const [players, setPlayers]       = useState<Player[]>([])
@@ -301,6 +307,20 @@ export default function DuelosClient({ userId, profile, duels, dailyCount, chall
     fetchPlayers()
     fetchActiveToday()
   }, [])
+
+  // Auto-open challenge modal when arriving with ?challenge=<userId>
+  useEffect(() => {
+    if (autoChallengeHandled) return
+    if (!challengeQueryId) return
+    if (loadingPlayers || players.length === 0) return
+
+    const target = players.find(p => p.id === challengeQueryId)
+    if (target && target.id !== userId && !challengedTodayIds.includes(target.id) && dailyCount < 3) {
+      setTarget(target)
+      setModal('pick-cats')
+    }
+    setAutoChallengeHandled(true)
+  }, [challengeQueryId, loadingPlayers, players, autoChallengeHandled, userId, challengedTodayIds, dailyCount])
 
   const challengedSet = new Set(challengedTodayIds)
 

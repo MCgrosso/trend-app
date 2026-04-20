@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { Trophy, Star, Medal } from 'lucide-react'
 import Avatar from '@/components/Avatar'
 import { getMedal } from '@/lib/medals'
@@ -105,14 +106,16 @@ export default function RankingClient({
                   <div className="w-8 flex items-center justify-center flex-shrink-0">
                     <RankIcon rank={idx + 1} />
                   </div>
-                  <Avatar avatarUrl={p.avatar_url} firstName={p.first_name} size="sm" frame={p.frame} />
-                  <div className="flex-1 min-w-0">
-                    <p className={`font-semibold truncate ${isMe ? 'text-purple-200' : 'text-white'}`}>
-                      {p.first_name} {p.last_name}
-                      {isMe && <span className="text-purple-400 text-xs ml-2">(vos)</span>}
-                    </p>
-                    <p className="text-gray-400 text-xs">@{p.username}</p>
-                  </div>
+                  <Link href={`/perfil/${p.username}`} className="flex items-center gap-3 flex-1 min-w-0 group">
+                    <Avatar avatarUrl={p.avatar_url} firstName={p.first_name} size="sm" frame={p.frame} />
+                    <div className="flex-1 min-w-0">
+                      <p className={`font-semibold truncate group-hover:text-cyan-300 transition-colors ${isMe ? 'text-purple-200' : 'text-white'}`}>
+                        {p.first_name} {p.last_name}
+                        {isMe && <span className="text-purple-400 text-xs ml-2">(vos)</span>}
+                      </p>
+                      <p className="text-gray-400 text-xs group-hover:text-cyan-400/80 transition-colors">@{p.username}</p>
+                    </div>
+                  </Link>
                   <div className="flex items-center gap-1 flex-shrink-0">
                     <Star size={14} className="text-yellow-400" />
                     <span className="text-yellow-300 font-bold">{p.total_score}</span>
@@ -233,18 +236,18 @@ function Podium({
 
       <div className="relative grid grid-cols-3 gap-2 items-end">
         {/* 2nd */}
-        <div className="animate-podium-2 flex flex-col items-center">
+        <Link href={`/perfil/${second.username}`} className="animate-podium-2 flex flex-col items-center group">
           <Avatar avatarUrl={second.avatarUrl} firstName={second.firstName} size="md" frame={second.frame} />
-          <p className="text-xs text-gray-200 font-bold mt-1 text-center truncate w-full px-1">{second.username}</p>
+          <p className="text-xs text-gray-200 font-bold mt-1 text-center truncate w-full px-1 group-hover:text-cyan-300 transition-colors">{second.username}</p>
           <p className="text-xs text-amber-300 font-bold">{second.score} pts</p>
           <div className="mt-2 w-full h-16 rounded-t-xl bg-gradient-to-b from-gray-300 via-gray-400 to-gray-600 flex flex-col items-center justify-center border-2 border-gray-300/50 shadow-[0_0_18px_rgba(229,231,235,0.4)]">
             <Medal size={20} className="text-white drop-shadow" />
             <span className="font-bebas text-2xl text-white leading-none">2</span>
           </div>
-        </div>
+        </Link>
 
         {/* 1st */}
-        <div className="animate-podium-1 flex flex-col items-center">
+        <Link href={`/perfil/${first.username}`} className="animate-podium-1 flex flex-col items-center group">
           <div className="relative">
             <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-2xl animate-spark">👑</span>
             <div className="rounded-full ring-4 ring-amber-400/60 shadow-[0_0_30px_rgba(245,158,11,0.6)]">
@@ -257,18 +260,18 @@ function Podium({
             <Trophy size={26} className="text-white drop-shadow" />
             <span className="font-bebas text-3xl text-white leading-none">1</span>
           </div>
-        </div>
+        </Link>
 
         {/* 3rd */}
-        <div className="animate-podium-3 flex flex-col items-center">
+        <Link href={`/perfil/${third.username}`} className="animate-podium-3 flex flex-col items-center group">
           <Avatar avatarUrl={third.avatarUrl} firstName={third.firstName} size="md" frame={third.frame} />
-          <p className="text-xs text-gray-200 font-bold mt-1 text-center truncate w-full px-1">{third.username}</p>
+          <p className="text-xs text-gray-200 font-bold mt-1 text-center truncate w-full px-1 group-hover:text-cyan-300 transition-colors">{third.username}</p>
           <p className="text-xs text-amber-300 font-bold">{third.score} pts</p>
           <div className="mt-2 w-full h-12 rounded-t-xl bg-gradient-to-b from-orange-400 via-orange-600 to-orange-800 flex flex-col items-center justify-center border-2 border-orange-400/50 shadow-[0_0_18px_rgba(249,115,22,0.4)]">
             <Medal size={18} className="text-white drop-shadow" />
             <span className="font-bebas text-xl text-white leading-none">3</span>
           </div>
-        </div>
+        </Link>
       </div>
     </div>
   )
@@ -292,14 +295,16 @@ function OutOfTopCard({
         <div className="w-8 flex items-center justify-center">
           <span className="text-gray-400 text-sm font-bold">#{rank}</span>
         </div>
-        <Avatar avatarUrl={profile.avatar_url} firstName={profile.first_name} size="sm" frame={profile.frame} />
-        <div className="flex-1 min-w-0">
-          <p className="font-semibold text-purple-200 truncate">
-            {profile.first_name} {profile.last_name}
-            <span className="text-purple-400 text-xs ml-2">(vos)</span>
-          </p>
-          <p className="text-gray-400 text-xs">@{profile.username}</p>
-        </div>
+        <Link href={`/perfil/${profile.username}`} className="flex items-center gap-3 flex-1 min-w-0 group">
+          <Avatar avatarUrl={profile.avatar_url} firstName={profile.first_name} size="sm" frame={profile.frame} />
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-purple-200 truncate group-hover:text-cyan-300 transition-colors">
+              {profile.first_name} {profile.last_name}
+              <span className="text-purple-400 text-xs ml-2">(vos)</span>
+            </p>
+            <p className="text-gray-400 text-xs group-hover:text-cyan-400/80 transition-colors">@{profile.username}</p>
+          </div>
+        </Link>
         <div className="flex items-center gap-2 flex-shrink-0">
           {medal && <span className="text-lg leading-none">{medal.icon}</span>}
           <div className="flex items-center gap-1">
