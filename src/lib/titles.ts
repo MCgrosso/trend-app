@@ -50,7 +50,7 @@ export const TITLES: Title[] = [
     winsRequired: 15,
   },
   {
-    id: 'conocedor',
+    id: 'campeon',
     label: 'Conocedor',
     color: 'text-purple-300',
     bgColor: 'bg-purple-900/30',
@@ -87,7 +87,7 @@ export const TITLES: Title[] = [
     winsRequired: 50,
   },
   {
-    id: 'invicto',
+    id: 'invencible',
     label: 'Campeón Invicto',
     color: '',
     bgColor: 'bg-gradient-to-r from-red-900/30 via-purple-900/30 to-blue-900/30',
@@ -120,10 +120,10 @@ export function getTitle(titleId: string | null | undefined): Title {
 
 export function computeTitle(wins: number, streak: number): Title {
   if (wins >= 100)   return TITLES.find(t => t.id === 'rey')!
-  if (streak >= 10)  return TITLES.find(t => t.id === 'invicto')!
+  if (streak >= 10)  return TITLES.find(t => t.id === 'invencible')!
   if (wins >= 50)    return TITLES.find(t => t.id === 'leyenda')!
   if (streak >= 3)   return TITLES.find(t => t.id === 'profeta')!
-  if (wins >= 30)    return TITLES.find(t => t.id === 'conocedor')!
+  if (wins >= 30)    return TITLES.find(t => t.id === 'campeon')!
   if (wins >= 15)    return TITLES.find(t => t.id === 'guerrero')!
   if (wins >= 5)     return TITLES.find(t => t.id === 'aprendiz')!
   return TITLES[0]
@@ -137,13 +137,13 @@ interface NextTitleInfo {
 }
 
 export function getNextTitle(wins: number, streak: number): NextTitleInfo | null {
-  if (wins < 5)   return { title: TITLES.find(t => t.id === 'aprendiz')!,  progress: wins,   target: 5,   label: 'victorias' }
-  if (wins < 15)  return { title: TITLES.find(t => t.id === 'guerrero')!,  progress: wins,   target: 15,  label: 'victorias' }
-  if (wins < 30)  return { title: TITLES.find(t => t.id === 'conocedor')!, progress: wins,   target: 30,  label: 'victorias' }
+  if (wins < 5)   return { title: TITLES.find(t => t.id === 'aprendiz')!,    progress: wins,   target: 5,   label: 'victorias' }
+  if (wins < 15)  return { title: TITLES.find(t => t.id === 'guerrero')!,    progress: wins,   target: 15,  label: 'victorias' }
+  if (wins < 30)  return { title: TITLES.find(t => t.id === 'campeon')!,     progress: wins,   target: 30,  label: 'victorias' }
   if (streak < 3 && wins < 50) return { title: TITLES.find(t => t.id === 'profeta')!, progress: streak, target: 3, label: 'racha' }
-  if (wins < 50)  return { title: TITLES.find(t => t.id === 'leyenda')!,   progress: wins,   target: 50,  label: 'victorias' }
-  if (streak < 10 && wins < 100) return { title: TITLES.find(t => t.id === 'invicto')!, progress: streak, target: 10, label: 'racha' }
-  if (wins < 100) return { title: TITLES.find(t => t.id === 'rey')!,       progress: wins,   target: 100, label: 'victorias' }
+  if (wins < 50)  return { title: TITLES.find(t => t.id === 'leyenda')!,     progress: wins,   target: 50,  label: 'victorias' }
+  if (streak < 10 && wins < 100) return { title: TITLES.find(t => t.id === 'invencible')!, progress: streak, target: 10, label: 'racha' }
+  if (wins < 100) return { title: TITLES.find(t => t.id === 'rey')!,         progress: wins,   target: 100, label: 'victorias' }
   return null
 }
 
