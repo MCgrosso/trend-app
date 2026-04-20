@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import Logo from '@/components/Logo'
 import Avatar from '@/components/Avatar'
 import Link from 'next/link'
-import { BookOpen, Trophy, Megaphone, Calendar, Star, ChevronRight, Flame, CheckCircle2 } from 'lucide-react'
+import { BookOpen, Trophy, Megaphone, Calendar, Star, ChevronRight, Flame, CheckCircle2, Scroll } from 'lucide-react'
 
 export default async function HomePage() {
   const supabase = await createClient()
@@ -44,6 +44,15 @@ export default async function HomePage() {
   const remaining = (questionsToday ?? 0) - answeredToday
   const allDone = user && remaining === 0 && (questionsToday ?? 0) > 0
   const progress = questionsToday ? Math.round((answeredToday / questionsToday) * 100) : 0
+
+  // Active story chapter
+  const { data: activeStory } = await supabase
+    .from('story_chapters')
+    .select('id, book, chapter, title, character_emoji')
+    .eq('is_active', true)
+    .order('week_start', { ascending: false })
+    .limit(1)
+    .maybeSingle()
 
   // Horario de saludo
   const hour = new Date().getHours()
@@ -164,6 +173,32 @@ export default async function HomePage() {
               </Link>
             </div>
           </div>
+        )}
+
+        {/* ── MODO HISTORIA ── */}
+        {activeStory && (
+          <Link
+            href="/historia"
+            className="relative block bg-gradient-to-r from-amber-900/50 via-yellow-900/40 to-amber-900/50 border border-yellow-600/40 rounded-2xl p-4 overflow-hidden hover:border-yellow-500/70 transition-all group"
+          >
+            <div className="absolute -top-8 -right-8 w-32 h-32 bg-yellow-500/15 blur-2xl rounded-full pointer-events-none" />
+            <div className="absolute inset-0 opacity-20 pointer-events-none"
+              style={{ backgroundImage: 'radial-gradient(circle at 30% 50%, #fbbf24 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+            <div className="relative flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-yellow-600/30 border border-yellow-500/40 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                {activeStory.character_emoji}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-yellow-300/80 text-[10px] uppercase tracking-[0.25em] font-semibold flex items-center gap-1">
+                  <Scroll size={10} /> Modo Historia · Esta semana
+                </p>
+                <p className="font-bold text-yellow-100 text-sm mt-0.5" style={{ fontFamily: 'serif' }}>
+                  {activeStory.book} {activeStory.chapter} — {activeStory.title}
+                </p>
+              </div>
+              <ChevronRight size={18} className="text-yellow-300 flex-shrink-0" />
+            </div>
+          </Link>
         )}
 
         {/* ── ACCESOS RÁPIDOS ── */}

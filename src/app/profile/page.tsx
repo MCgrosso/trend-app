@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import LogoutButton from './LogoutButton'
 import AvatarSection from './AvatarSection'
-import { Star, Flame, Calendar, Shield, Swords, Trophy } from 'lucide-react'
+import { Star, Flame, Calendar, Shield, Swords, Trophy, Scroll, BookOpen } from 'lucide-react'
 import Logo from '@/components/Logo'
 import Link from 'next/link'
 import { getMedal } from '@/lib/medals'
@@ -77,6 +77,47 @@ export default async function ProfilePage() {
   const duelStreak = profile?.win_streak ?? 0
   const title     = getTitle(profile?.title)
   const nextTitle  = getNextTitle(duelWins, duelStreak)
+
+  // Mi viaje bíblico — story chapters + answers
+  const { data: allChapters } = await supabase
+    .from('story_chapters')
+    .select('id, book, chapter, title, character_emoji')
+    .order('week_start', { ascending: true })
+
+  const { data: myStoryAnswers } = await supabase
+    .from('story_answers')
+    .select('chapter_id, question_id, is_correct')
+    .eq('user_id', user.id)
+
+  // Group answers by chapter
+  const answersByChapter = new Map<string, { total: number; correct: number }>()
+  for (const a of myStoryAnswers ?? []) {
+    const s = answersByChapter.get(a.chapter_id) ?? { total: 0, correct: 0 }
+    s.total += 1
+    if (a.is_correct) s.correct += 1
+    answersByChapter.set(a.chapter_id, s)
+  }
+
+  // Count questions per chapter to know if completed
+  const { data: storyQs } = await supabase
+    .from('questions')
+    .select('story_chapter_id')
+    .not('story_chapter_id', 'is', null)
+  const qCountByChapter = new Map<string, number>()
+  for (const q of storyQs ?? []) {
+    const id = q.story_chapter_id as string
+    qCountByChapter.set(id, (qCountByChapter.get(id) ?? 0) + 1)
+  }
+
+  const completedChapters = (allChapters ?? []).filter(c => {
+    const answered = answersByChapter.get(c.id)?.total ?? 0
+    const total    = qCountByChapter.get(c.id) ?? 0
+    return total > 0 && answered >= total
+  })
+
+  // Total Bible chapters approximation (OT + NT = 1189)
+  const BIBLE_TOTAL_CHAPTERS = 1189
+  const biblePct = Math.round((completedChapters.length / BIBLE_TOTAL_CHAPTERS) * 10000) / 100
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0f0f1a] via-[#1a1a2e] to-[#0d1b2a]">
@@ -217,6 +258,69 @@ export default async function ProfilePage() {
               <p className="text-yellow-300 text-sm font-bold">👑 Título máximo desbloqueado</p>
             </div>
           )}
+        </div>
+
+        {/* ── Mi viaje bíblico ── */}
+        <div className="relative bg-gradient-to-br from-amber-900/30 to-yellow-900/20 border border-yellow-700/40 rounded-2xl p-5 overflow-hidden">
+          <div className="absolute -top-8 -right-8 w-32 h-32 bg-yellow-500/10 blur-2xl rounded-full pointer-events-none" />
+
+          <div className="relative">
+            <div className="flex items-center gap-2 mb-1">
+              <Scroll size={16} className="text-yellow-400" />
+              <h3 className="font-semibold text-yellow-100">Mi viaje bíblico</h3>
+            </div>
+            <p className="text-yellow-200/70 text-xs mb-4">Modo Historia · {completedChapters.length} capítulos completados</p>
+
+            {/* Bible progress bar */}
+            <div className="mb-4">
+              <div className="flex justify-between text-xs mb-1.5">
+                <span className="text-yellow-300/80">Progreso de la Biblia</span>
+                <span className="text-yellow-200 font-bold">{biblePct.toFixed(2)}%</span>
+              </div>
+              <div className="h-2 bg-yellow-900/40 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-yellow-500 to-amber-400 transition-all duration-700"
+                  style={{ width: `${Math.max(1, biblePct)}%` }}
+                />
+              </div>
+              <p className="text-yellow-300/50 text-[10px] mt-1">{completedChapters.length} de {BIBLE_TOTAL_CHAPTERS} capítulos</p>
+            </div>
+
+            {/* Timeline */}
+            {completedChapters.length === 0 ? (
+              <div className="text-center py-6">
+                <BookOpen size={28} className="text-yellow-700/60 mx-auto mb-2" />
+                <p className="text-yellow-200/70 text-xs">Aún no completaste ningún capítulo</p>
+                <Link href="/historia" className="inline-block mt-3 px-4 py-2 bg-yellow-600/30 hover:bg-yellow-600/50 border border-yellow-500/40 text-yellow-100 text-xs font-medium rounded-xl transition-colors">
+                  📜 Empezar mi viaje
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {completedChapters.map((c, i) => {
+                  const stats   = answersByChapter.get(c.id)
+                  const correct = stats?.correct ?? 0
+                  const total   = stats?.total ?? 0
+                  return (
+                    <div key={c.id} className="relative flex items-center gap-3">
+                      {/* Vertical line */}
+                      {i < completedChapters.length - 1 && (
+                        <span className="absolute left-[18px] top-9 bottom-[-12px] w-0.5 bg-yellow-700/40" />
+                      )}
+                      {/* Badge */}
+                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-yellow-500 to-amber-700 border-2 border-yellow-400/60 flex items-center justify-center text-base flex-shrink-0 shadow-lg shadow-yellow-900/50 z-10">
+                        {c.character_emoji}
+                      </div>
+                      <div className="flex-1 bg-yellow-900/20 border border-yellow-700/30 rounded-xl px-3 py-2">
+                        <p className="text-yellow-100 text-sm font-semibold" style={{ fontFamily: 'serif' }}>{c.book} {c.chapter}</p>
+                        <p className="text-yellow-300/70 text-xs">{c.title} · {correct}/{total} correctas</p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Titles showcase */}

@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { BookOpen, Megaphone, Calendar, BarChart3, Users } from 'lucide-react'
+import { BookOpen, Megaphone, Calendar, BarChart3, Users, Scroll } from 'lucide-react'
 import Logo from '@/components/Logo'
 
 export default async function AdminPage() {
@@ -27,12 +27,14 @@ export default async function AdminPage() {
     { count: totalUsers },
     { count: totalAnnouncements },
     { count: totalEvents },
+    { count: totalChapters },
   ] = await Promise.all([
     supabase.from('questions').select('*', { count: 'exact', head: true }),
     supabase.from('questions').select('*', { count: 'exact', head: true }).eq('available_date', today),
     supabase.from('profiles').select('*', { count: 'exact', head: true }),
     supabase.from('announcements').select('*', { count: 'exact', head: true }),
     supabase.from('events').select('*', { count: 'exact', head: true }),
+    supabase.from('story_chapters').select('*', { count: 'exact', head: true }),
   ])
 
   const sections = [
@@ -56,6 +58,13 @@ export default async function AdminPage() {
       label: 'Eventos',
       color: 'green',
       stat: `${totalEvents} eventos`,
+    },
+    {
+      href: '/admin/historia',
+      icon: Scroll,
+      label: 'Modo Historia',
+      color: 'yellow',
+      stat: `${totalChapters ?? 0} capítulos`,
     },
   ]
 
@@ -101,18 +110,21 @@ export default async function AdminPage() {
               href={href}
               className={`flex items-center gap-4 p-4 rounded-2xl border transition-all hover:scale-[1.01] ${
                 color === 'purple' ? 'bg-purple-900/20 border-purple-700/40 hover:border-purple-500/60' :
-                color === 'blue' ? 'bg-blue-900/20 border-blue-700/40 hover:border-blue-500/60' :
+                color === 'blue'   ? 'bg-blue-900/20 border-blue-700/40 hover:border-blue-500/60'   :
+                color === 'yellow' ? 'bg-yellow-900/20 border-yellow-700/40 hover:border-yellow-500/60' :
                 'bg-green-900/20 border-green-700/40 hover:border-green-500/60'
               }`}
             >
               <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
                 color === 'purple' ? 'bg-purple-600/30' :
-                color === 'blue' ? 'bg-blue-600/30' :
+                color === 'blue'   ? 'bg-blue-600/30'   :
+                color === 'yellow' ? 'bg-yellow-600/30' :
                 'bg-green-600/30'
               }`}>
                 <Icon size={22} className={
                   color === 'purple' ? 'text-purple-400' :
-                  color === 'blue' ? 'text-blue-400' :
+                  color === 'blue'   ? 'text-blue-400'   :
+                  color === 'yellow' ? 'text-yellow-400' :
                   'text-green-400'
                 } />
               </div>

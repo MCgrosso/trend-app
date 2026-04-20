@@ -175,6 +175,21 @@ body {
 }
 .animate-roulette { animation: roulette-blur 0.15s ease-in-out infinite; }
 
+/* --- Story Mode: scroll/parchment unroll --- */
+@keyframes scroll-unroll {
+  0%   { transform: scaleY(0) translateY(-20px); opacity: 0; transform-origin: top; }
+  60%  { transform: scaleY(1.05) translateY(0);  opacity: 1; }
+  100% { transform: scaleY(1) translateY(0);     opacity: 1; }
+}
+.animate-scroll-unroll { animation: scroll-unroll 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+/* --- Story Mode: golden glow pulse --- */
+@keyframes golden-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(251, 191, 36, 0.3), 0 0 0 2px rgba(212, 162, 71, 0.6); }
+  50%       { box-shadow: 0 0 40px rgba(251, 191, 36, 0.6), 0 0 0 2px rgba(251, 191, 36, 0.9); }
+}
+.animate-golden-glow { animation: golden-glow 2s ease-in-out infinite; }
+
 ::-webkit-scrollbar {
   width: 4px;
 }
