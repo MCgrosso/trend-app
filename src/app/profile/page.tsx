@@ -7,6 +7,7 @@ import AvatarSection from './AvatarSection'
 import { Star, Flame, Calendar, Shield } from 'lucide-react'
 import Logo from '@/components/Logo'
 import Link from 'next/link'
+import { getMedal } from '@/lib/medals'
 
 export default async function ProfilePage() {
   const supabase = await createClient()
@@ -19,7 +20,6 @@ export default async function ProfilePage() {
     .eq('id', user.id)
     .single()
 
-  const today = new Date().toISOString().split('T')[0]
   const { data: answers } = await supabase
     .from('answers')
     .select('is_correct, answered_at')
@@ -30,12 +30,37 @@ export default async function ProfilePage() {
   const correctAnswers = answers?.filter(a => a.is_correct).length ?? 0
   const accuracy = totalAnswers > 0 ? Math.round((correctAnswers / totalAnswers) * 100) : 0
 
+  // Puntaje semanal (lunes-domingo UTC)
+  const now = new Date()
+  const dayOfWeek = now.getUTCDay()
+  const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+  const weekStart = new Date(now)
+  weekStart.setUTCDate(weekStart.getUTCDate() - daysFromMonday)
+  weekStart.setUTCHours(0, 0, 0, 0)
+
+  const weeklyCorrect = answers?.filter(
+    a => a.is_correct && new Date(a.answered_at) >= weekStart
+  ).length ?? 0
+  const weeklyScore = weeklyCorrect * 10
+
+  // ¿Es campeón semanal?
+  const { data: weeklyAll } = await supabase.rpc('get_weekly_ranking')
+  const isWeeklyChampion = (weeklyAll?.[0]?.id === user.id) && weeklyScore > 0
+  const medal = getMedal(weeklyScore, isWeeklyChampion)
+
+  // Ranking global
   const { data: ranking } = await supabase
     .from('profiles')
     .select('id, total_score')
     .order('total_score', { ascending: false })
 
   const userRank = (ranking?.findIndex(p => p.id === user.id) ?? -1) + 1
+
+  // Avatares especiales desbloqueados
+  const unlockedSpecial: string[] = []
+  if (correctAnswers >= 20) unlockedSpecial.push('guerrero')
+  if ((profile?.streak_days ?? 0) >= 5) unlockedSpecial.push('profeta')
+  if ((profile?.total_score ?? 0) >= 200) unlockedSpecial.push('apostol')
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0f0f1a] via-[#1a1a2e] to-[#0d1b2a]">
@@ -54,6 +79,7 @@ export default async function ProfilePage() {
             userId={user.id}
             avatarUrl={profile?.avatar_url ?? null}
             firstName={profile?.first_name ?? null}
+            unlockedSpecial={unlockedSpecial}
           />
           {profile?.role === 'admin' && (
             <Link href="/admin" className="inline-flex items-center gap-1 mt-4 bg-yellow-500/20 text-yellow-400 text-xs px-3 py-1 rounded-full border border-yellow-500/30 hover:bg-yellow-500/30 transition-colors">
@@ -62,6 +88,25 @@ export default async function ProfilePage() {
             </Link>
           )}
         </div>
+
+        {/* Medalla semanal */}
+        {medal ? (
+          <div className={`flex items-center gap-4 px-5 py-4 rounded-2xl border ${medal.bgColor} ${medal.borderColor}`}>
+            <span className="text-4xl">{medal.icon}</span>
+            <div>
+              <p className={`font-bold text-lg ${medal.textColor}`}>{medal.label}</p>
+              <p className="text-gray-400 text-xs">{weeklyScore} pts esta semana</p>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-4 px-5 py-4 rounded-2xl border border-gray-700/30 bg-gray-800/20">
+            <span className="text-4xl opacity-40">🏅</span>
+            <div>
+              <p className="text-gray-500 font-medium">Sin medalla esta semana</p>
+              <p className="text-gray-600 text-xs">Jugá para ganar — Bronce desde 50 pts</p>
+            </div>
+          </div>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-2 gap-3">

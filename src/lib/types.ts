@@ -42,6 +42,15 @@ export interface Announcement {
   created_at: string
 }
 
+export interface WeeklyProfile {
+  id: string
+  username: string
+  first_name: string
+  last_name: string
+  avatar_url: string | null
+  weekly_score: number
+}
+
 export interface Event {
   id: string
   title: string
