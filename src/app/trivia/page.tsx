@@ -12,9 +12,7 @@ export default async function TriviaPage() {
 
   const today = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'America/Argentina/Buenos_Aires',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
+    year: 'numeric', month: '2-digit', day: '2-digit',
   }).format(new Date())
 
   const { data: questions, error: questionsError } = await supabase
@@ -39,6 +37,22 @@ export default async function TriviaPage() {
     answeredMap[a.question_id] = { selected_option: a.selected_option, is_correct: a.is_correct }
   }
 
+  // Weekly score for medal detection in session
+  const now = new Date()
+  const daysFromMonday = now.getUTCDay() === 0 ? 6 : now.getUTCDay() - 1
+  const weekStart = new Date(now)
+  weekStart.setUTCDate(weekStart.getUTCDate() - daysFromMonday)
+  weekStart.setUTCHours(0, 0, 0, 0)
+
+  const { data: weekAnswers } = await supabase
+    .from('answers')
+    .select('is_correct')
+    .eq('user_id', user.id)
+    .eq('is_correct', true)
+    .gte('answered_at', weekStart.toISOString())
+
+  const initialWeeklyScore = (weekAnswers?.length ?? 0) * 10
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0f0f1a] via-[#1a1a2e] to-[#0d1b2a]">
       <header className="px-4 pt-8 pb-4 max-w-lg mx-auto">
@@ -60,6 +74,7 @@ export default async function TriviaPage() {
           <TriviaClient
             questions={questions}
             answeredMap={answeredMap}
+            initialWeeklyScore={initialWeeklyScore}
           />
         )}
       </div>
