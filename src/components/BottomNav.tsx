@@ -19,7 +19,10 @@ export default function BottomNav() {
   if (isAdminRoute || isAuthRoute) return null
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 backdrop-blur-xl bg-[#08051a]/80 border-t border-purple-500/30">
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-50 backdrop-blur-xl bg-[#08051a]/80 border-t border-purple-500/30"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+    >
       <div className="flex items-center justify-around max-w-lg mx-auto">
         {navItems.map(({ href, icon: Icon, label }) => {
           const active = pathname === href || (href !== '/' && pathname.startsWith(href))

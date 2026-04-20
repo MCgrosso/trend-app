@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Bebas_Neue, Nunito } from "next/font/google";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
@@ -21,7 +21,31 @@ export const metadata: Metadata = {
   title: "TREND",
   description: "Trivia bíblica para jóvenes de la iglesia",
   manifest: "/manifest.json",
+  applicationName: "#TREND",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "#TREND",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  other: {
+    "mobile-web-app-capable": "yes",
+  },
+  icons: {
+    icon: "/icon-192.png",
+    apple: "/icon-192.png",
+  },
+};
+
+export const viewport: Viewport = {
   themeColor: "#08051a",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
