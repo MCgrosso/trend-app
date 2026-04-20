@@ -4,10 +4,11 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import LogoutButton from './LogoutButton'
 import AvatarSection from './AvatarSection'
-import { Star, Flame, Calendar, Shield } from 'lucide-react'
+import { Star, Flame, Calendar, Shield, Swords, Trophy } from 'lucide-react'
 import Logo from '@/components/Logo'
 import Link from 'next/link'
 import { getMedal } from '@/lib/medals'
+import { getTitle, getNextTitle, TITLES } from '@/lib/titles'
 
 export default async function ProfilePage() {
   const supabase = await createClient()
@@ -61,6 +62,7 @@ export default async function ProfilePage() {
   if (correctAnswers >= 20) unlockedSpecial.push('guerrero')
   if ((profile?.streak_days ?? 0) >= 5) unlockedSpecial.push('profeta')
   if ((profile?.total_score ?? 0) >= 200) unlockedSpecial.push('apostol')
+  if ((profile?.duel_win_streak ?? 0) >= 3 || (profile?.duel_best_streak ?? 0) >= 3) unlockedSpecial.push('campeon')
 
   // Marcos desbloqueados (básicos siempre disponibles)
   const unlockedFrames = ['white', 'blue', 'emerald', 'red', 'orange', 'purple', 'pink']
@@ -69,6 +71,12 @@ export default async function ProfilePage() {
   if ((profile?.streak_days ?? 0) >= 5)   unlockedFrames.push('rainbow')
   if (isWeeklyChampion)                    unlockedFrames.push('golden')
   if ((profile?.total_score  ?? 0) >= 300) unlockedFrames.push('divine')
+
+  // Title & progress
+  const duelWins   = profile?.duel_wins   ?? 0
+  const duelStreak = profile?.duel_win_streak ?? 0
+  const title     = getTitle(profile?.title)
+  const nextTitle  = getNextTitle(duelWins, duelStreak)
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0f0f1a] via-[#1a1a2e] to-[#0d1b2a]">
@@ -83,6 +91,15 @@ export default async function ProfilePage() {
           <h2 className="text-xl font-bold text-white mb-0.5">{profile?.first_name} {profile?.last_name}</h2>
           <p className="text-purple-300 text-sm">@{profile?.username}</p>
           <p className="text-gray-400 text-xs mt-1">{user.email}</p>
+
+          {/* Title badge */}
+          <div className="flex justify-center mt-3">
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold ${title.bgColor} ${title.borderColor} ${title.color}`}>
+              ⚔️ {title.label}
+              <span className={`text-[10px] font-medium ${title.rarityColor}`}>({title.rarity})</span>
+            </span>
+          </div>
+
           {profile?.role === 'admin' && (
             <Link href="/admin" className="inline-flex items-center gap-1 mt-3 bg-yellow-500/20 text-yellow-400 text-xs px-3 py-1 rounded-full border border-yellow-500/30 hover:bg-yellow-500/30 transition-colors">
               <Shield size={12} />
@@ -144,6 +161,83 @@ export default async function ProfilePage() {
             <Calendar size={22} className="text-green-400 mx-auto mb-1" />
             <p className="text-2xl font-bold text-green-300">{accuracy}%</p>
             <p className="text-xs text-gray-400">Precisión</p>
+          </div>
+        </div>
+
+        {/* ── Duel stats ── */}
+        <div className="bg-gray-800/40 border border-gray-700/40 rounded-2xl p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Swords size={16} className="text-purple-400" />
+            <h3 className="font-semibold text-white">Estadísticas de Duelos</h3>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3 mb-4">
+            <div className="text-center">
+              <p className="text-xl font-bold text-green-400">{profile?.duel_wins ?? 0}</p>
+              <p className="text-xs text-gray-500">Victorias</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xl font-bold text-red-400">{profile?.duel_losses ?? 0}</p>
+              <p className="text-xs text-gray-500">Derrotas</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xl font-bold text-yellow-400">{profile?.duel_draws ?? 0}</p>
+              <p className="text-xs text-gray-500">Empates</p>
+            </div>
+          </div>
+
+          <div className="flex justify-between text-sm mb-4">
+            <div>
+              <span className="text-gray-400">Racha actual </span>
+              <span className={`font-bold ${duelStreak > 0 ? 'text-orange-400' : 'text-gray-500'}`}>{duelStreak}🔥</span>
+            </div>
+            <div>
+              <span className="text-gray-400">Mejor racha </span>
+              <span className="font-bold text-purple-400">{profile?.duel_best_streak ?? 0}⚡</span>
+            </div>
+          </div>
+
+          {/* Title progress */}
+          {nextTitle ? (
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-400">Próximo título: <span className={nextTitle.title.color}>{nextTitle.title.label}</span></span>
+                <span className="text-gray-500">{nextTitle.progress}/{nextTitle.target} {nextTitle.label}</span>
+              </div>
+              <div className="h-2 bg-gray-700/60 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-700 ${nextTitle.title.bgColor.replace('/30', '')}`}
+                  style={{ width: `${Math.min(100, Math.round((nextTitle.progress / nextTitle.target) * 100))}%` }}
+                />
+              </div>
+              <p className="text-xs text-gray-600">{nextTitle.title.requirement}</p>
+            </div>
+          ) : (
+            <div className="text-center">
+              <p className="text-yellow-300 text-sm font-bold">👑 Título máximo desbloqueado</p>
+            </div>
+          )}
+        </div>
+
+        {/* Titles showcase */}
+        <div className="bg-gray-800/40 border border-gray-700/40 rounded-2xl p-5">
+          <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
+            <Trophy size={16} className="text-yellow-400" />
+            Todos los títulos
+          </h3>
+          <div className="space-y-2">
+            {TITLES.map(t => {
+              const unlocked = title.id === t.id || duelWins >= (t.winsRequired ?? 0) || (t.streakRequired && duelStreak >= t.streakRequired)
+              return (
+                <div key={t.id} className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all ${
+                  unlocked ? `${t.bgColor} ${t.borderColor}` : 'bg-gray-800/30 border-gray-700/30 opacity-40'
+                }`}>
+                  <span className={`text-sm font-bold ${t.color}`}>{t.label}</span>
+                  <span className={`text-[10px] ml-auto ${t.rarityColor}`}>{t.rarity}</span>
+                  {!unlocked && <span className="text-gray-600 text-xs">🔒</span>}
+                </div>
+              )
+            })}
           </div>
         </div>
 

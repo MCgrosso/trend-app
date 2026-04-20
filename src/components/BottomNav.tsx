@@ -2,13 +2,13 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, BookOpen, Trophy, Megaphone, User } from 'lucide-react'
+import { Home, BookOpen, Trophy, Swords, User } from 'lucide-react'
 
 const navItems = [
   { href: '/', icon: Home, label: 'Inicio' },
   { href: '/trivia', icon: BookOpen, label: 'Trivias' },
   { href: '/ranking', icon: Trophy, label: 'Ranking' },
-  { href: '/anuncios', icon: Megaphone, label: 'Anuncios' },
+  { href: '/duelos', icon: Swords, label: 'Duelos' },
   { href: '/profile', icon: User, label: 'Perfil' },
 ]
 
