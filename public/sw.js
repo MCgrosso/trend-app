@@ -1,8 +1,8 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// TREND service worker — v3
+// TREND service worker — v4
 // Strategy: minimal interception
 //   · Precache the offline shell
-//   · Static assets (js/css/fonts/img) → cache-first with background revalidate
+//   · Static assets (js/css/fonts/img/audio) → cache-first with background revalidate
 //   · EVERYTHING ELSE → pass through to network untouched (no respondWith)
 //
 // Reasons:
@@ -10,9 +10,11 @@
 //     interception, otherwise body/clone races break them silently.
 //   · Dynamic routes like /duelos/* and the RSC payloads behind them carry
 //     state we never want to serve stale.
+//   · Range requests (<audio>/<video>) bypass the SW — 206 responses can't be
+//     cached, and intercepting them breaks media playback.
 // ═══════════════════════════════════════════════════════════════════════════
 
-const VERSION       = "v3";
+const VERSION       = "v4";
 const STATIC_CACHE  = `trend-static-${VERSION}`;
 const RUNTIME_CACHE = `trend-runtime-${VERSION}`;
 const CORE_ASSETS   = [
@@ -67,28 +69,34 @@ function isStaticAsset(url) {
   );
 }
 
+// Best-effort cache put — never lets caching failures surface to the caller.
+// cache.put throws on 206 Partial responses (range requests), opaque responses
+// from failed CORS, and various storage-quota conditions — none of which
+// should break the response we hand back to the page.
+async function safePut(request, response) {
+  if (!response || response.status !== 200 || response.type === "opaque") return;
+  try {
+    const cache = await caches.open(RUNTIME_CACHE);
+    await cache.put(request, response);
+  } catch { /* ignore — caching is advisory */ }
+}
+
 // Cache-first for static assets — instant, update in background
 async function cacheFirst(request) {
   const cached = await caches.match(request);
   if (cached) {
     // Background revalidate — fire and forget, fully isolated from the response
     fetch(request)
-      .then(async (fresh) => {
-        if (fresh && fresh.ok && fresh.type !== "opaque") {
-          const cache = await caches.open(RUNTIME_CACHE);
-          await cache.put(request, fresh.clone());
-        }
-      })
+      .then((fresh) => { if (fresh) safePut(request, fresh.clone()); })
       .catch(() => {});
     return cached;
   }
   try {
     const fresh = await fetch(request);
-    if (fresh && fresh.ok && fresh.type !== "opaque") {
-      // Clone BEFORE returning — fully synchronous before any consumer reads
-      const cache = await caches.open(RUNTIME_CACHE);
-      await cache.put(request, fresh.clone());
-    }
+    // Clone BEFORE returning — fully synchronous before any consumer reads.
+    // Never await the put: even a successful fetch must be returned to the
+    // page unblocked, and cache failures must never turn into ERR_FAILED.
+    if (fresh) safePut(request, fresh.clone());
     return fresh;
   } catch {
     return Response.error();
@@ -101,6 +109,11 @@ self.addEventListener("fetch", (event) => {
 
   // 1. Never intercept non-GET (Server Actions are POST)
   if (request.method !== "GET") return;
+
+  // 1b. Never intercept Range requests (<audio>/<video> byte-range fetches).
+  //     Servers respond 206 Partial Content, which cache.put() rejects —
+  //     and intercepting breaks seek/resume on media elements.
+  if (request.headers.get("range")) return;
 
   // 2. Never intercept Next.js Server Actions (POST + Next-Action header,
   //    but defensive: also skip GET with this header just in case)
