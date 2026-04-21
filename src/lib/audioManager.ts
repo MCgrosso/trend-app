@@ -12,6 +12,17 @@ const VOLUME: Record<Exclude<BgTrack, null> | OneShot, number> = {
   derrota:  0.50,
 }
 
+// Filenames don't match the moments they're used for: the "battle" music
+// is in /victoria.mp3 and the "victory" jingle is in /batalla.mp3.
+// Keep the logical moment names at call sites, remap them here.
+const FILENAME: Record<Exclude<BgTrack, null> | OneShot, string> = {
+  main:     'main',
+  historia: 'historia',
+  batalla:  'victoria',
+  victoria: 'batalla',
+  derrota:  'derrota',
+}
+
 const MUTE_KEY = 'trend-audio-muted'
 
 class AudioManager {
@@ -42,7 +53,7 @@ class AudioManager {
     this.currentTrack = track
     if (!track || this.muted) return
 
-    const el = new Audio(`/${track}.mp3`)
+    const el = new Audio(`/${FILENAME[track]}.mp3`)
     el.loop    = true
     el.volume  = VOLUME[track]
     el.preload = 'auto'
@@ -63,7 +74,7 @@ class AudioManager {
     // Duck the background while one-shot plays
     if (this.bgEl) this.bgEl.pause()
 
-    const el = new Audio(`/${name}.mp3`)
+    const el = new Audio(`/${FILENAME[name]}.mp3`)
     el.volume = VOLUME[name]
     this.oneShotEl = el
 
