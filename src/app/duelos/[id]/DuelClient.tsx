@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 import Avatar from '@/components/Avatar'
 import Confetti from '@/components/Confetti'
 import { getTitle } from '@/lib/titles'
@@ -69,7 +70,7 @@ function CircularTimer({ timeLeft, max = 20 }: { timeLeft: number; max?: number 
   )
 }
 
-export default function DuelClient({ userId, duel, duelQuestions }: {
+export default function DuelClient({ userId, duel, duelQuestions: initialQuestions }: {
   userId: string
   duel: DuelRow
   duelQuestions: DuelQuestionRow[]
@@ -79,22 +80,75 @@ export default function DuelClient({ userId, duel, duelQuestions }: {
   const me = isChallenger ? duel.challenger : duel.opponent
   const opp = isChallenger ? duel.opponent : duel.challenger
 
-  const myAnswerField = isChallenger ? 'challenger_answer' : 'opponent_answer'
-  const myCorrectField = isChallenger ? 'challenger_correct' : 'opponent_correct'
+  // Local state so we can retry the fetch client-side if SSR returned empty
+  const [duelQuestions, setDuelQuestions] = useState<DuelQuestionRow[]>(initialQuestions)
+  const [retrying, setRetrying]           = useState(initialQuestions.length === 0)
+  const [retryFailed, setRetryFailed]     = useState(false)
 
-  // Filter questions not yet answered by me
-  const pendingQs  = duelQuestions.filter(dq => dq[myAnswerField as keyof DuelQuestionRow] === null)
-  const answeredQs = duelQuestions.filter(dq => dq[myAnswerField as keyof DuelQuestionRow] !== null)
+  // ── Defensive "answered by me" check ─────────────────────────────────────
+  function isAnsweredByMe(dq: DuelQuestionRow): boolean {
+    const val = isChallenger ? dq.challenger_answer : dq.opponent_answer
+    return typeof val === 'string' && val.trim() !== ''
+  }
 
-  // Empty array → corrupt state (duel created without questions). Don't treat as "finished".
+  const pendingQs    = duelQuestions.filter(dq => !isAnsweredByMe(dq))
+  const answered     = duelQuestions.filter(dq =>  isAnsweredByMe(dq))
+  const myCorrectCount = answered.filter(dq =>
+    (isChallenger ? dq.challenger_correct : dq.opponent_correct) === true
+  ).length
+
   const noQuestions = duelQuestions.length === 0
 
-  console.log('[duel]', {
-    duelId: duel.id, status: duel.status, isChallenger,
-    duelQuestionsCount: duelQuestions.length,
-    pendingCount: pendingQs.length, answeredCount: answeredQs.length,
-    myAnswerField, noQuestions,
-  })
+  console.log('[duel] duelQuestions:', duelQuestions)
+  console.log('[duel] answered:', answered)
+  console.log('[duel] userId=', userId, 'isChallenger=', isChallenger,
+    'duel.status=', duel.status,
+    'pending=', pendingQs.length, 'answered=', answered.length, 'noQuestions=', noQuestions)
+  if (duelQuestions.length > 0) {
+    console.log('[duel] raw rows:', duelQuestions.map(dq => ({
+      order: dq.question_order,
+      ch_answer: dq.challenger_answer, ch_type: typeof dq.challenger_answer,
+      op_answer: dq.opponent_answer,   op_type: typeof dq.opponent_answer,
+    })))
+  }
+
+  // ── Client-side retry: if SSR returned empty (RLS edge case, race
+  //    condition with insert), re-fetch from the browser after a short delay.
+  useEffect(() => {
+    if (!retrying) return
+    const supabase = createClient()
+    let cancelled = false
+
+    async function fetchAndMaybeRetry() {
+      // Try up to 3 times across 3 seconds
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        if (cancelled) return
+        await new Promise(r => setTimeout(r, 1000))
+        const { data, error } = await supabase
+          .from('duel_questions')
+          .select(`
+            *,
+            question:questions(id, question, option_a, option_b, option_c, option_d, correct_option, explanation, category)
+          `)
+          .eq('duel_id', duel.id)
+          .order('question_order')
+
+        console.log(`[duel] retry attempt ${attempt}: data=`, data, 'error=', error)
+        if (!cancelled && data && data.length > 0) {
+          setDuelQuestions(data as DuelQuestionRow[])
+          setRetrying(false)
+          return
+        }
+      }
+      if (!cancelled) {
+        setRetrying(false)
+        setRetryFailed(true)
+      }
+    }
+
+    fetchAndMaybeRetry()
+    return () => { cancelled = true }
+  }, [retrying, duel.id])
 
   const [current, setCurrent]         = useState(0)
   const [selected, setSelected]       = useState<Option | null>(null)
@@ -104,9 +158,12 @@ export default function DuelClient({ userId, duel, duelQuestions }: {
   const [cardAnim, setCardAnim]       = useState('')
   const [showConfetti, setShowConfetti] = useState(false)
   const [showFloat, setShowFloat]     = useState(false)
-  const [myScore, setMyScore]         = useState(answeredQs.filter(dq => dq[myCorrectField as keyof DuelQuestionRow]).length)
-  // finished only if there ARE questions AND all are answered
-  const [finished, setFinished]       = useState(!noQuestions && pendingQs.length === 0)
+  const [myScore, setMyScore]         = useState(myCorrectCount)
+  // finished ONLY when answered >= total AND total > 0
+  const [finished, setFinished]       = useState(
+    duelQuestions.length > 0 && answered.length >= duelQuestions.length
+  )
+  console.log('[duel] finished:', finished)
   const [result, setResult]           = useState<string | null>(null)
   const [slideKey, setSlideKey]       = useState(0)
   const [localAnswers, setLocalAnswers] = useState<Record<string, boolean>>({})
@@ -222,13 +279,22 @@ export default function DuelClient({ userId, duel, duelQuestions }: {
     setCurrent(c => c + 1)
   }
 
-  // ── No questions in DB for this duel — corrupt state ────────────────────
-  if (noQuestions) {
+  // ── Empty array: spinner while client retries; error if all retries fail ──
+  if (noQuestions && retrying) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#0f0f1a] via-[#1a1a2e] to-[#0d1b2a] flex flex-col items-center justify-center px-6 text-center">
+        <div className="w-12 h-12 border-4 border-purple-700/30 border-t-purple-500 rounded-full animate-spin mb-4" />
+        <p className="text-purple-300 text-sm">Cargando preguntas del duelo...</p>
+      </div>
+    )
+  }
+
+  if (noQuestions && retryFailed) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0f0f1a] via-[#1a1a2e] to-[#0d1b2a] flex flex-col items-center justify-center px-6 text-center">
         <span className="text-5xl mb-4">⚠️</span>
         <h2 className="text-xl font-bold text-white mb-2">Este duelo no tiene preguntas</h2>
-        <p className="text-gray-400 text-sm max-w-xs">El duelo se creó sin preguntas asignadas. Avisale al admin o creá uno nuevo.</p>
+        <p className="text-gray-400 text-sm max-w-xs">El duelo se creó sin preguntas asignadas o RLS las está filtrando. Avisale al admin o creá uno nuevo.</p>
         <button onClick={() => router.push('/duelos')}
           className="mt-6 px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-xl transition-colors">
           Volver a Duelos
