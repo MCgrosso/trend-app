@@ -23,7 +23,7 @@ export default async function DuelPage({ params }: { params: Promise<{ id: strin
   if (!duel) notFound()
   if (duel.challenger_id !== user.id && duel.opponent_id !== user.id) notFound()
 
-  const { data: duelQuestions } = await supabase
+  const { data: duelQuestions, error: dqErr } = await supabase
     .from('duel_questions')
     .select(`
       *,
@@ -31,6 +31,13 @@ export default async function DuelPage({ params }: { params: Promise<{ id: strin
     `)
     .eq('duel_id', id)
     .order('question_order')
+
+  console.log('[duel-page]', {
+    duelId: id,
+    duelStatus: duel.status,
+    duelQuestionsCount: duelQuestions?.length ?? 0,
+    duelQuestionsError: dqErr,
+  })
 
   return (
     <DuelClient

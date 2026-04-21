@@ -69,44 +69,74 @@ export async function acceptDuel(duelId: string, opponentCategories: string[]) {
   const challengerCats: string[] = duel.categories ?? []
   const allChosen = new Set([...challengerCats, ...opponentCategories])
   const remaining = DUEL_CATEGORIES.filter(c => !allChosen.has(c))
-  const randomCat = remaining[Math.floor(Math.random() * remaining.length)]
+  const randomCat = remaining[Math.floor(Math.random() * remaining.length)] ?? challengerCats[0]
   const finalCats = [...challengerCats, ...opponentCategories, randomCat]
 
-  // Pick 1 question per category
-  const questionIds: { id: string; order: number }[] = []
-  for (let i = 0; i < finalCats.length; i++) {
-    const cat = finalCats[i]
-    const { data: qs } = await supabase
-      .from('questions')
-      .select('id')
-      .eq('category', cat)
-      .limit(50)
+  console.log('[acceptDuel] finalCats (5 categorías a buscar):', finalCats)
 
-    if (qs && qs.length > 0) {
-      const pick = qs[Math.floor(Math.random() * qs.length)]
-      questionIds.push({ id: pick.id, order: i + 1 })
+  // Single query — fetch all questions whose category matches any of the chosen 5
+  const { data: matched, error: matchedErr } = await supabase
+    .from('questions')
+    .select('id, category')
+    .in('category', finalCats)
+
+  if (matchedErr) {
+    console.log('[acceptDuel] error consultando preguntas por categoría:', matchedErr)
+    return { error: `Error consultando preguntas: ${matchedErr.message}` }
+  }
+
+  // Group by category to see how many we have for each
+  const byCategory = new Map<string, string[]>()
+  for (const q of matched ?? []) {
+    const k = q.category as string
+    const list = byCategory.get(k) ?? []
+    list.push(q.id)
+    byCategory.set(k, list)
+  }
+  console.log('[acceptDuel] preguntas encontradas por categoría:',
+    finalCats.map(c => ({ categoria: c, cantidad: byCategory.get(c)?.length ?? 0 }))
+  )
+
+  // Pick 1 question per category (no duplicates)
+  const questionIds: { id: string; order: number }[] = []
+  const usedIds = new Set<string>()
+  for (let i = 0; i < finalCats.length; i++) {
+    const cat  = finalCats[i]
+    const pool = (byCategory.get(cat) ?? []).filter(id => !usedIds.has(id))
+    if (pool.length > 0) {
+      const pick = pool[Math.floor(Math.random() * pool.length)]
+      questionIds.push({ id: pick, order: i + 1 })
+      usedIds.add(pick)
     }
   }
 
-  // Fallback: if any category has no questions, pick randoms
+  // Fallback — if we still don't have 5, pick from ANY question
   if (questionIds.length < 5) {
     const needed = 5 - questionIds.length
-    const usedIds = [...new Set(questionIds.map(q => q.id))]
-    let fallbackQuery = supabase.from('questions').select('id').limit(needed + 20)
-    if (usedIds.length > 0) {
-      fallbackQuery = fallbackQuery.not('id', 'in', `(${usedIds.join(',')})`)
-    }
-    const { data: fallback } = await fallbackQuery
-    const fb = fallback ?? []
-    for (let i = 0; i < needed && i < fb.length; i++) {
-      questionIds.push({ id: fb[i].id, order: questionIds.length + 1 })
+    console.log('[acceptDuel] fallback: faltan', needed, 'preguntas, busco de cualquier categoría')
+
+    const { data: anyQs, error: anyErr } = await supabase
+      .from('questions')
+      .select('id')
+      .limit(100)
+
+    if (anyErr) console.log('[acceptDuel] error fallback:', anyErr)
+
+    const pool = (anyQs ?? []).filter(q => !usedIds.has(q.id)).map(q => q.id)
+    console.log('[acceptDuel] tamaño del pool de fallback (excluyendo ya elegidas):', pool.length)
+
+    while (questionIds.length < 5 && pool.length > 0) {
+      const idx  = Math.floor(Math.random() * pool.length)
+      const pick = pool.splice(idx, 1)[0]
+      questionIds.push({ id: pick, order: questionIds.length + 1 })
+      usedIds.add(pick)
     }
   }
 
-  console.log('[acceptDuel] picked questionIds:', questionIds)
+  console.log('[acceptDuel] preguntas finales seleccionadas:', questionIds.length, questionIds)
 
   if (questionIds.length === 0) {
-    return { error: 'No hay preguntas disponibles. Pediel al admin que cargue preguntas en /admin/preguntas.' }
+    return { error: 'No hay preguntas en la base de datos. El admin debe cargar preguntas desde /admin/preguntas.' }
   }
 
   // Insert duel questions FIRST so we never end up active without questions
