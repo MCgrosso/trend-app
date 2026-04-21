@@ -308,6 +308,37 @@ export default function DuelosClient({ userId, profile, duels, dailyCount, chall
     fetchActiveToday()
   }, [])
 
+  // ── Realtime: refresh when any duel involving me changes ────────────────
+  useEffect(() => {
+    const supabase = createClient()
+    const channel = supabase
+      .channel(`duels-rt-${userId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'duels', filter: `opponent_id=eq.${userId}` },
+        (payload) => {
+          console.log('[duels-rt] opponent_id event:', payload.eventType, payload)
+          router.refresh()
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'duels', filter: `challenger_id=eq.${userId}` },
+        (payload) => {
+          console.log('[duels-rt] challenger_id event:', payload.eventType, payload)
+          router.refresh()
+        }
+      )
+      .subscribe((status) => {
+        console.log('[duels-rt] subscription status:', status)
+      })
+
+    return () => {
+      console.log('[duels-rt] unsubscribing')
+      supabase.removeChannel(channel)
+    }
+  }, [userId, router])
+
   // Auto-open challenge modal when arriving with ?challenge=<userId>
   useEffect(() => {
     if (autoChallengeHandled) return

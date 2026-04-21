@@ -80,12 +80,21 @@ export default function DuelClient({ userId, duel, duelQuestions }: {
   const opp = isChallenger ? duel.opponent : duel.challenger
 
   const myAnswerField = isChallenger ? 'challenger_answer' : 'opponent_answer'
-
   const myCorrectField = isChallenger ? 'challenger_correct' : 'opponent_correct'
 
   // Filter questions not yet answered by me
   const pendingQs  = duelQuestions.filter(dq => dq[myAnswerField as keyof DuelQuestionRow] === null)
   const answeredQs = duelQuestions.filter(dq => dq[myAnswerField as keyof DuelQuestionRow] !== null)
+
+  // Empty array → corrupt state (duel created without questions). Don't treat as "finished".
+  const noQuestions = duelQuestions.length === 0
+
+  console.log('[duel]', {
+    duelId: duel.id, status: duel.status, isChallenger,
+    duelQuestionsCount: duelQuestions.length,
+    pendingCount: pendingQs.length, answeredCount: answeredQs.length,
+    myAnswerField, noQuestions,
+  })
 
   const [current, setCurrent]         = useState(0)
   const [selected, setSelected]       = useState<Option | null>(null)
@@ -96,7 +105,8 @@ export default function DuelClient({ userId, duel, duelQuestions }: {
   const [showConfetti, setShowConfetti] = useState(false)
   const [showFloat, setShowFloat]     = useState(false)
   const [myScore, setMyScore]         = useState(answeredQs.filter(dq => dq[myCorrectField as keyof DuelQuestionRow]).length)
-  const [finished, setFinished]       = useState(pendingQs.length === 0)
+  // finished only if there ARE questions AND all are answered
+  const [finished, setFinished]       = useState(!noQuestions && pendingQs.length === 0)
   const [result, setResult]           = useState<string | null>(null)
   const [slideKey, setSlideKey]       = useState(0)
   const [localAnswers, setLocalAnswers] = useState<Record<string, boolean>>({})
@@ -210,6 +220,21 @@ export default function DuelClient({ userId, duel, duelQuestions }: {
     setSelected(null)
     setSlideKey(k => k + 1)
     setCurrent(c => c + 1)
+  }
+
+  // ── No questions in DB for this duel — corrupt state ────────────────────
+  if (noQuestions) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#0f0f1a] via-[#1a1a2e] to-[#0d1b2a] flex flex-col items-center justify-center px-6 text-center">
+        <span className="text-5xl mb-4">⚠️</span>
+        <h2 className="text-xl font-bold text-white mb-2">Este duelo no tiene preguntas</h2>
+        <p className="text-gray-400 text-sm max-w-xs">El duelo se creó sin preguntas asignadas. Avisale al admin o creá uno nuevo.</p>
+        <button onClick={() => router.push('/duelos')}
+          className="mt-6 px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-xl transition-colors">
+          Volver a Duelos
+        </button>
+      </div>
+    )
   }
 
   // ── Finished / Results screen ──────────────────────────────────────────────

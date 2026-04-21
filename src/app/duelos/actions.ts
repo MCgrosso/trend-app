@@ -42,7 +42,11 @@ export async function createDuel(opponentId: string, challengerCategories: strin
     .select('id')
     .single()
 
-  if (error) return { error: error.message, duelId: null }
+  if (error) {
+    console.log('[createDuel] insert error:', error)
+    return { error: error.message, duelId: null }
+  }
+  console.log('[createDuel] inserted duel', duel.id, 'challenger=', user.id, 'opponent=', opponentId)
   return { error: null, duelId: duel.id }
 }
 
@@ -99,21 +103,37 @@ export async function acceptDuel(duelId: string, opponentCategories: string[]) {
     }
   }
 
-  // Update duel
-  const { error: updateErr } = await supabase
-    .from('duels')
-    .update({ status: 'active', categories: finalCats })
-    .eq('id', duelId)
+  console.log('[acceptDuel] picked questionIds:', questionIds)
 
-  if (updateErr) return { error: updateErr.message }
+  if (questionIds.length === 0) {
+    return { error: 'No hay preguntas disponibles. Pediel al admin que cargue preguntas en /admin/preguntas.' }
+  }
 
-  // Insert duel questions
+  // Insert duel questions FIRST so we never end up active without questions
   const rows = questionIds.map(q => ({
     duel_id: duelId,
     question_id: q.id,
     question_order: q.order,
   }))
-  await supabase.from('duel_questions').insert(rows)
+  const { error: insertErr } = await supabase.from('duel_questions').insert(rows)
+  if (insertErr) {
+    console.log('[acceptDuel] duel_questions insert error:', insertErr)
+    return { error: `Error al crear preguntas: ${insertErr.message}` }
+  }
+  console.log('[acceptDuel] inserted', rows.length, 'duel_questions for duel', duelId)
+
+  // Now activate the duel
+  const { error: updateErr } = await supabase
+    .from('duels')
+    .update({ status: 'active', categories: finalCats })
+    .eq('id', duelId)
+
+  if (updateErr) {
+    console.log('[acceptDuel] duel activation error:', updateErr)
+    // Roll back the questions to keep state consistent
+    await supabase.from('duel_questions').delete().eq('duel_id', duelId)
+    return { error: updateErr.message }
+  }
 
   return { error: null }
 }
