@@ -7,8 +7,13 @@ export type Mood = 'neutral' | 'happy' | 'sad'
 // Map Bible character names → image path under /public.
 // Add new characters here as new chapters are created.
 const CHARACTER_IMAGES: Record<string, string> = {
-  'Moisés': '/moises.png',
-  'Adán':   '/adam.png',
+  'Moisés':  '/moises.png',
+  'Adán':    '/adam.png',
+  'Eva':     '/eva.png',
+  'Abel':    '/abel.png',
+  'Noé':     '/noe.png',
+  'Nimrod':  '/nimrod.png',
+  'Abraham': '/abraham.png',
 }
 
 const FALLBACK_IMAGE = '/moises.png'
