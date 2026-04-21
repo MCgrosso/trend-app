@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import Avatar from '@/components/Avatar'
 import Confetti from '@/components/Confetti'
 import { getTitle } from '@/lib/titles'
-import { submitDuelAnswer } from '../actions'
+import { submitDuelAnswer, checkAndFinishDuel } from '../actions'
 import { CheckCircle, XCircle, Swords, Clock, Trophy, Shield } from 'lucide-react'
 import { playSuccess, playError, playTick } from '@/lib/sounds'
 import { getAudioManager } from '@/lib/audioManager'
@@ -70,12 +70,17 @@ function CircularTimer({ timeLeft, max = 20 }: { timeLeft: number; max?: number 
   )
 }
 
-export default function DuelClient({ userId, duel, duelQuestions: initialQuestions }: {
+export default function DuelClient({ userId, duel: initialDuel, duelQuestions: initialQuestions }: {
   userId: string
   duel: DuelRow
   duelQuestions: DuelQuestionRow[]
 }) {
   const router = useRouter()
+
+  // Local state for duel — updated by realtime / polling so the results screen
+  // re-renders the moment the opponent finishes.
+  const [duel, setDuel] = useState<DuelRow>(initialDuel)
+
   const isChallenger = duel.challenger_id === userId
   const me = isChallenger ? duel.challenger : duel.opponent
   const opp = isChallenger ? duel.opponent : duel.challenger
@@ -174,6 +179,67 @@ export default function DuelClient({ userId, duel, duelQuestions: initialQuestio
   const alreadyDone = duel.status === 'finished' || (isChallenger ? duel.challenger_finished : duel.opponent_finished)
 
   const currentDQ = pendingQs[current]
+
+  // ── Realtime: react to duel row updates instantly ──────────────────────────
+  useEffect(() => {
+    const supabase = createClient()
+    const challengerId = duel.challenger_id
+
+    const channel = supabase
+      .channel(`duel-row-${duel.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'duels', filter: `id=eq.${duel.id}` },
+        (payload) => {
+          console.log('[duel-rt] update event:', payload.new)
+          const incoming = payload.new as Partial<DuelRow>
+          setDuel(prev => ({
+            ...prev,
+            ...incoming,
+            // Preserve joined profiles (realtime payload doesn't include them)
+            challenger: prev.challenger,
+            opponent:   prev.opponent,
+          }))
+          if (incoming.status === 'finished') {
+            const r =
+              !incoming.winner_id                  ? 'draw' :
+              incoming.winner_id === challengerId  ? 'challenger' :
+                                                     'opponent'
+            setResult(r)
+            setFinished(true)
+          }
+        }
+      )
+      .subscribe(s => console.log('[duel-rt] sub status:', s))
+
+    return () => { supabase.removeChannel(channel) }
+  }, [duel.id, duel.challenger_id])
+
+  // ── Polling fallback: every 3s while I'm done waiting for opponent ─────────
+  useEffect(() => {
+    if (duel.status === 'finished') return
+    if (!finished) return  // only poll once I've finished my side
+
+    console.log('[duel-poll] starting poll (every 3s) while waiting for opponent')
+    const id = setInterval(async () => {
+      const r = await checkAndFinishDuel(duel.id)
+      console.log('[duel-poll] checkAndFinishDuel returned:', r)
+      if (r.finished && r.result) {
+        setResult(r.result)
+        setFinished(true)
+        // Pull fresh duel row so scores/winner_id show in results screen
+        const supabase = createClient()
+        const { data: fresh } = await supabase
+          .from('duels')
+          .select('*')
+          .eq('id', duel.id)
+          .single()
+        if (fresh) setDuel(prev => ({ ...prev, ...fresh, challenger: prev.challenger, opponent: prev.opponent }))
+      }
+    }, 3000)
+
+    return () => { clearInterval(id) }
+  }, [finished, duel.id, duel.status])
 
   // ── Duel audio orchestration ──────────────────────────────────────────────
   // Phases:

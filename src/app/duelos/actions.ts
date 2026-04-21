@@ -197,6 +197,172 @@ export async function cancelDuel(duelId: string) {
   return { error: null }
 }
 
+// ─── Idempotent finish-checker — calculates winner & awards points if both done ───
+export async function checkAndFinishDuel(duelId: string): Promise<{
+  error: string | null
+  finished: boolean
+  result: 'challenger' | 'opponent' | 'draw' | null
+}> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'No autenticado', finished: false, result: null }
+
+  // 1. Fetch duel
+  const { data: duel, error: dErr } = await supabase
+    .from('duels')
+    .select('id, challenger_id, opponent_id, status, winner_id')
+    .eq('id', duelId)
+    .single()
+
+  if (dErr || !duel) {
+    console.log('[checkAndFinishDuel] duel fetch error:', dErr)
+    return { error: dErr?.message ?? 'Duelo no encontrado', finished: false, result: null }
+  }
+
+  // 2. Already finished — return current state, idempotent
+  if (duel.status === 'finished') {
+    let result: 'challenger' | 'opponent' | 'draw'
+    if (!duel.winner_id) result = 'draw'
+    else if (duel.winner_id === duel.challenger_id) result = 'challenger'
+    else result = 'opponent'
+    return { error: null, finished: true, result }
+  }
+
+  // 3. Fetch all duel_questions
+  const { data: dqs, error: qErr } = await supabase
+    .from('duel_questions')
+    .select('challenger_answer, challenger_correct, opponent_answer, opponent_correct')
+    .eq('duel_id', duelId)
+
+  if (qErr || !dqs) {
+    console.log('[checkAndFinishDuel] dq fetch error:', qErr)
+    return { error: qErr?.message ?? 'Error consultando preguntas', finished: false, result: null }
+  }
+
+  const isAnswered = (v: unknown) => typeof v === 'string' && v.trim() !== ''
+  const allChDone = dqs.length > 0 && dqs.every(q => isAnswered(q.challenger_answer))
+  const allOpDone = dqs.length > 0 && dqs.every(q => isAnswered(q.opponent_answer))
+
+  console.log('[checkAndFinishDuel]', {
+    duelId, qCount: dqs.length, allChDone, allOpDone,
+  })
+
+  // 4. Update partial finish flags (always — so other player sees waiting state correctly)
+  await supabase
+    .from('duels')
+    .update({
+      challenger_finished: allChDone,
+      opponent_finished:   allOpDone,
+    })
+    .eq('id', duelId)
+    .eq('status', 'active')
+
+  if (!allChDone || !allOpDone) {
+    return { error: null, finished: false, result: null }
+  }
+
+  // 5. Both finished — compute result
+  const chScore = dqs.filter(q => q.challenger_correct === true).length
+  const opScore = dqs.filter(q => q.opponent_correct === true).length
+
+  let winnerId: string | null = null
+  let result: 'challenger' | 'opponent' | 'draw'
+  if      (chScore > opScore) { winnerId = duel.challenger_id; result = 'challenger' }
+  else if (opScore > chScore) { winnerId = duel.opponent_id;   result = 'opponent'   }
+  else                        { result = 'draw' }
+
+  // 6. Atomic transition to finished — only if still active (race protection)
+  const { data: updated, error: updErr } = await supabase
+    .from('duels')
+    .update({
+      status: 'finished',
+      challenger_score: chScore,
+      opponent_score:   opScore,
+      winner_id:        winnerId,
+      challenger_finished: true,
+      opponent_finished:   true,
+      finished_at:      new Date().toISOString(),
+    })
+    .eq('id', duelId)
+    .eq('status', 'active')
+    .select('id')
+    .maybeSingle()
+
+  if (updErr) {
+    console.log('[checkAndFinishDuel] activation update error:', updErr)
+    return { error: updErr.message, finished: false, result: null }
+  }
+
+  // Another concurrent call already finalized — skip profile updates
+  if (!updated) {
+    console.log('[checkAndFinishDuel] race — already finished by another caller')
+    return { error: null, finished: true, result }
+  }
+
+  console.log('[checkAndFinishDuel] finalized:', { result, chScore, opScore, winnerId })
+
+  // 7. Award points + update profile stats
+  await applyDuelResult(supabase, duel.challenger_id, duel.opponent_id, winnerId, result)
+
+  return { error: null, finished: true, result }
+}
+
+async function applyDuelResult(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  challengerId: string,
+  opponentId: string,
+  winnerId: string | null,
+  result: 'challenger' | 'opponent' | 'draw',
+) {
+  // Fetch current stats
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('id, total_score, wins, losses, draws, win_streak, best_streak')
+    .in('id', [challengerId, opponentId])
+
+  if (!profiles) return
+
+  for (const p of profiles) {
+    const isWinner = result !== 'draw' && p.id === winnerId
+    const isLoser  = result !== 'draw' && p.id !== winnerId
+    const isDraw   = result === 'draw'
+
+    let totalScore = (p.total_score ?? 0)
+    let wins       = p.wins ?? 0
+    let losses     = p.losses ?? 0
+    let draws      = p.draws ?? 0
+    let winStreak  = p.win_streak ?? 0
+    const bestStreakBefore = p.best_streak ?? 0
+
+    if (isWinner) {
+      totalScore += 20; wins += 1; winStreak += 1
+    } else if (isLoser) {
+      totalScore += 5;  losses += 1; winStreak = 0
+    } else if (isDraw) {
+      totalScore += 10; draws += 1;  winStreak = 0
+    }
+
+    const bestStreak = Math.max(bestStreakBefore, winStreak)
+
+    // Compute title from new stats
+    let title = 'novato'
+    if      (wins >= 100)      title = 'rey'
+    else if (winStreak >= 10)  title = 'invencible'
+    else if (wins >= 50)       title = 'leyenda'
+    else if (winStreak >= 3)   title = 'profeta'
+    else if (wins >= 30)       title = 'campeon'
+    else if (wins >= 15)       title = 'guerrero'
+    else if (wins >= 5)        title = 'aprendiz'
+
+    await supabase
+      .from('profiles')
+      .update({ total_score: totalScore, wins, losses, draws, win_streak: winStreak, best_streak: bestStreak, title })
+      .eq('id', p.id)
+  }
+
+  console.log('[applyDuelResult] updated profiles for both players')
+}
+
 export async function submitDuelAnswer(
   duelId: string,
   duelQuestionId: string,
@@ -248,26 +414,13 @@ export async function submitDuelAnswer(
     await supabase.from('duels').update({ [scoreField]: currentScore + 1 }).eq('id', duelId)
   }
 
-  // Check if this player answered all questions
-  const answerField = isChallenger ? 'challenger_answer' : 'opponent_answer'
-  const { data: allQs } = await supabase
-    .from('duel_questions')
-    .select(answerField)
-    .eq('duel_id', duelId)
+  // After every answer, ask the finisher whether the duel is now complete
+  const finishCheck = await checkAndFinishDuel(duelId)
 
-  const allAnswered = (allQs ?? []).every(q => (q as Record<string, string | null>)[answerField] !== null)
-
-  let finished = false
-  let result: string | null = null
-
-  if (allAnswered) {
-    const { data: finishData } = await supabase.rpc('finish_duel', {
-      p_duel_id: duelId,
-      p_user_id: user.id,
-    })
-    finished = true
-    result = (finishData as { result?: string } | null)?.result ?? null
+  return {
+    error: null,
+    isCorrect,
+    finished: finishCheck.finished,
+    result:   finishCheck.result,
   }
-
-  return { error: null, isCorrect, finished, result }
 }
