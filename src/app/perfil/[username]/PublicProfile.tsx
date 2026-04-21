@@ -34,6 +34,15 @@ interface ChapterRow {
   chapter: number
   title: string
   character_emoji: string
+  total: number
+  correct: number
+}
+
+function chapterBadge(pct: number) {
+  if (pct === 100) return { icon: '👑', label: 'Perfecto',  color: 'text-yellow-300', bg: 'bg-yellow-500/20 border-yellow-400/60' }
+  if (pct >= 80)   return { icon: '🏆', label: 'Excelente', color: 'text-amber-300',  bg: 'bg-amber-500/20 border-amber-400/50'  }
+  if (pct >= 60)   return { icon: '⭐', label: 'Muy bien',  color: 'text-cyan-300',   bg: 'bg-cyan-500/15 border-cyan-400/40'    }
+  return           { icon: '📖', label: 'Completo',  color: 'text-emerald-300', bg: 'bg-emerald-500/15 border-emerald-500/40' }
 }
 
 export default function PublicProfile({
@@ -202,19 +211,35 @@ export default function PublicProfile({
               {completedChapters.length === 0 ? (
                 <p className="text-yellow-200/60 text-xs text-center py-4">Sin capítulos completados aún</p>
               ) : (
-                <div className="flex flex-wrap gap-2">
-                  {completedChapters.map(c => (
-                    <div
-                      key={c.id}
-                      title={`${c.book} ${c.chapter} — ${c.title}`}
-                      className="flex items-center gap-1.5 bg-yellow-900/30 border border-yellow-600/40 rounded-full pl-1 pr-3 py-1"
-                    >
-                      <div className="w-7 h-7 rounded-full bg-gradient-to-br from-yellow-500 to-amber-700 border border-yellow-400/60 flex items-center justify-center text-xs">
-                        {c.character_emoji}
+                <div className="space-y-2">
+                  {completedChapters.map(c => {
+                    const pct = c.total > 0 ? Math.round((c.correct / c.total) * 100) : 0
+                    const badge = chapterBadge(pct)
+                    return (
+                      <div
+                        key={c.id}
+                        className="flex items-center gap-3 bg-yellow-900/25 border border-yellow-700/40 rounded-2xl p-3"
+                      >
+                        <div className="w-10 h-10 flex-shrink-0 rounded-xl bg-gradient-to-br from-yellow-500 to-amber-700 border border-yellow-400/60 flex items-center justify-center text-lg">
+                          {c.character_emoji}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-yellow-100 text-sm font-semibold truncate">
+                            {c.book} {c.chapter}
+                          </p>
+                          <p className="text-yellow-200/60 text-[11px] italic truncate">{c.title}</p>
+                          <p className="text-yellow-300/80 text-[11px] mt-0.5 font-semibold">
+                            {c.correct}/{c.total} correctas
+                            <span className="text-yellow-400/60"> · {pct}%</span>
+                          </p>
+                        </div>
+                        <span className={`flex-shrink-0 inline-flex items-center gap-1 border ${badge.bg} ${badge.color} text-[10px] font-bold px-2 py-1 rounded-full`}>
+                          <span>{badge.icon}</span>
+                          <span className="uppercase tracking-wider">{badge.label}</span>
+                        </span>
                       </div>
-                      <span className="text-yellow-100 text-xs font-semibold">{c.book} {c.chapter}</span>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
             </div>

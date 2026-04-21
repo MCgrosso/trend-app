@@ -329,68 +329,37 @@ export async function checkAndFinishDuel(duelId: string): Promise<{
     return { error: null, finished: true, result }
   }
 
-  console.log('[checkAndFinishDuel] finalized:', { result, chScore, opScore, winnerId })
+  console.log('[checkAndFinishDuel] finalized:', {
+    duelId, result, chScore, opScore, winnerId,
+    challengerId: duel.challenger_id, opponentId: duel.opponent_id,
+  })
 
-  // 7. Award points + update profile stats
-  await applyDuelResult(supabase, duel.challenger_id, duel.opponent_id, winnerId, result)
-
-  return { error: null, finished: true, result }
-}
-
-async function applyDuelResult(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  challengerId: string,
-  opponentId: string,
-  winnerId: string | null,
-  result: 'challenger' | 'opponent' | 'draw',
-) {
-  // Fetch current stats
-  const { data: profiles } = await supabase
+  // 7. Award points + update profile stats via SECURITY DEFINER RPC.
+  //    Can't do this from a user-scoped client: the profiles RLS policy
+  //    "users can update own profile" blocks writes on the opponent's row,
+  //    so only one player would have their wins/losses counted.
+  const profilesBefore = await supabase
     .from('profiles')
-    .select('id, total_score, wins, losses, draws, win_streak, best_streak')
-    .in('id', [challengerId, opponentId])
+    .select('id, wins, losses, draws, total_score')
+    .in('id', [duel.challenger_id, duel.opponent_id])
+  console.log('[checkAndFinishDuel] profiles BEFORE apply_duel_result:', profilesBefore.data)
 
-  if (!profiles) return
+  const { data: applyData, error: applyErr } = await supabase.rpc('apply_duel_result', {
+    p_duel_id: duelId,
+  })
+  console.log('[checkAndFinishDuel] apply_duel_result response:', { applyData, applyErr })
 
-  for (const p of profiles) {
-    const isWinner = result !== 'draw' && p.id === winnerId
-    const isLoser  = result !== 'draw' && p.id !== winnerId
-    const isDraw   = result === 'draw'
-
-    let totalScore = (p.total_score ?? 0)
-    let wins       = p.wins ?? 0
-    let losses     = p.losses ?? 0
-    let draws      = p.draws ?? 0
-    let winStreak  = p.win_streak ?? 0
-    const bestStreakBefore = p.best_streak ?? 0
-
-    if (isWinner) {
-      totalScore += 20; wins += 1; winStreak += 1
-    } else if (isLoser) {
-      totalScore += 5;  losses += 1; winStreak = 0
-    } else if (isDraw) {
-      totalScore += 10; draws += 1;  winStreak = 0
-    }
-
-    const bestStreak = Math.max(bestStreakBefore, winStreak)
-
-    // Compute title from new stats
-    let title = 'novato'
-    if      (wins >= 100)      title = 'rey'
-    else if (winStreak >= 10)  title = 'invencible'
-    else if (wins >= 50)       title = 'leyenda'
-    else if (winStreak >= 3)   title = 'profeta'
-    else if (wins >= 30)       title = 'campeon'
-    else if (wins >= 15)       title = 'guerrero'
-    else if (wins >= 5)        title = 'aprendiz'
-
-    await supabase
-      .from('profiles')
-      .update({ total_score: totalScore, wins, losses, draws, win_streak: winStreak, best_streak: bestStreak, title })
-      .eq('id', p.id)
+  if (applyErr) {
+    console.log('[checkAndFinishDuel] apply_duel_result FAILED:', applyErr)
   }
 
-  console.log('[applyDuelResult] updated profiles for both players')
+  const profilesAfter = await supabase
+    .from('profiles')
+    .select('id, wins, losses, draws, total_score')
+    .in('id', [duel.challenger_id, duel.opponent_id])
+  console.log('[checkAndFinishDuel] profiles AFTER apply_duel_result:', profilesAfter.data)
+
+  return { error: null, finished: true, result }
 }
 
 export async function submitDuelAnswer(

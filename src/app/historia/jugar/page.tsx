@@ -4,20 +4,32 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import StoryGameClient from './StoryGameClient'
 
-export default async function StoryGamePage() {
+export default async function StoryGamePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ chapter?: string }>
+}) {
+  const { chapter: chapterId } = await searchParams
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: chapter } = await supabase
-    .from('story_chapters')
-    .select('*')
-    .eq('is_active', true)
-    .order('week_start', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+  let chapterQuery = supabase.from('story_chapters').select('*')
+  chapterQuery = chapterId
+    ? chapterQuery.eq('id', chapterId)
+    : chapterQuery.eq('is_active', true).order('week_start', { ascending: false }).limit(1)
+
+  const { data: chapter } = await chapterQuery.maybeSingle()
 
   if (!chapter) notFound()
+
+  // Block play for locked (future) chapters
+  const today = new Date().toLocaleDateString('en-CA', {
+    timeZone: 'America/Argentina/Buenos_Aires',
+  })
+  if (chapter.week_start > today) {
+    redirect('/historia')
+  }
 
   const [
     { data: questions },

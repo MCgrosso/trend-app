@@ -55,7 +55,7 @@ export default function StoryIntro({
   }, [bookOpen, chapter.introduction])
 
   function handleStart() {
-    router.push('/historia/jugar')
+    router.push(`/historia/jugar?chapter=${chapter.id}`)
   }
 
   function handleSkipTypewriter() {

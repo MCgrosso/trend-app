@@ -49,7 +49,7 @@ export default async function PerfilPublicoPage({
 
   const { data: storyAnswers } = await supabase
     .from('story_answers')
-    .select('chapter_id')
+    .select('chapter_id, is_correct')
     .eq('user_id', profile.id)
 
   const { data: storyQs } = await supabase
@@ -63,16 +63,25 @@ export default async function PerfilPublicoPage({
     qCountByChapter.set(id, (qCountByChapter.get(id) ?? 0) + 1)
   }
 
-  const answeredCountByChapter = new Map<string, number>()
+  const statsByChapter = new Map<string, { total: number; correct: number }>()
   for (const a of storyAnswers ?? []) {
-    answeredCountByChapter.set(a.chapter_id, (answeredCountByChapter.get(a.chapter_id) ?? 0) + 1)
+    const s = statsByChapter.get(a.chapter_id) ?? { total: 0, correct: 0 }
+    s.total++
+    if (a.is_correct) s.correct++
+    statsByChapter.set(a.chapter_id, s)
   }
 
-  const completedChapters = (allChapters ?? []).filter(c => {
-    const total    = qCountByChapter.get(c.id) ?? 0
-    const answered = answeredCountByChapter.get(c.id) ?? 0
-    return total > 0 && answered >= total
-  })
+  const completedChapters = (allChapters ?? [])
+    .filter(c => {
+      const total    = qCountByChapter.get(c.id) ?? 0
+      const answered = statsByChapter.get(c.id)?.total ?? 0
+      return total > 0 && answered >= total
+    })
+    .map(c => {
+      const total   = qCountByChapter.get(c.id) ?? 0
+      const correct = statsByChapter.get(c.id)?.correct ?? 0
+      return { ...c, total, correct }
+    })
 
   // Global rank
   const { data: ranking } = await supabase
