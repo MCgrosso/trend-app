@@ -288,7 +288,18 @@ export default function DuelClient({ userId, duel: initialDuel, duelQuestions: i
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
     setLoading(true); setSelected(option)
 
-    const { isCorrect, finished: fin, result: res } = await submitDuelAnswer(duel.id, currentDQ.id, option)
+    const resp = await submitDuelAnswer(duel.id, currentDQ.id, option)
+    console.log('[handleSelect] submitDuelAnswer response:', resp)
+
+    if (resp.error) {
+      // Surface the migration / RLS error
+      alert(resp.error)
+      setSelected(null)
+      setLoading(false)
+      return
+    }
+
+    const { isCorrect, finished: fin, result: res } = resp
 
     setLocalAnswers(prev => ({ ...prev, [currentDQ.id]: isCorrect }))
     setShowResult(true)
@@ -306,10 +317,14 @@ export default function DuelClient({ userId, duel: initialDuel, duelQuestions: i
     }
     setTimeout(() => setCardAnim(''), 700)
 
+    // Server says BOTH players are done → set finished + result immediately
     if (fin) {
       setFinished(true)
       setResult(res)
     }
+    // (If only I'm done, finished stays false. The "Ver resultado →" button on the
+    //  last question lets me transition manually; realtime/polling will pull the
+    //  result once the rival also finishes.)
 
     setLoading(false)
   }
@@ -567,11 +582,12 @@ export default function DuelClient({ userId, duel: initialDuel, duelQuestions: i
           </button>
         )}
 
-        {/* Last question — auto-finish */}
+        {/* Last question — explicit "see result" button */}
         {effectiveAnswer && current === pendingQs.length - 1 && !finished && (
-          <div className="text-center">
-            <p className="text-gray-400 text-sm animate-pulse">Finalizando duelo...</p>
-          </div>
+          <button onClick={() => setFinished(true)}
+            className="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-semibold py-3 rounded-xl transition-all">
+            Ver resultado →
+          </button>
         )}
       </div>
     </div>

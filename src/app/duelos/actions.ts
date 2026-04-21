@@ -399,12 +399,39 @@ export async function submitDuelAnswer(
 
   const isCorrect = answer === question?.correct_option
 
-  // Update duel_questions
+  // Update duel_questions — names are challenger_answer / opponent_answer (see migration 004 + 011)
   const updatePayload = isChallenger
     ? { challenger_answer: answer, challenger_correct: isCorrect }
-    : { opponent_answer: answer, opponent_correct: isCorrect }
+    : { opponent_answer:   answer, opponent_correct:   isCorrect }
 
-  await supabase.from('duel_questions').update(updatePayload).eq('id', duelQuestionId)
+  console.log('[submitDuelAnswer] UPDATE duel_questions', {
+    duelQuestionId, isChallenger, payload: updatePayload,
+  })
+
+  const { data: updatedRow, error: updErr } = await supabase
+    .from('duel_questions')
+    .update(updatePayload)
+    .eq('id', duelQuestionId)
+    .select('id, challenger_answer, challenger_correct, opponent_answer, opponent_correct')
+    .single()
+
+  if (updErr) {
+    console.log('[submitDuelAnswer] UPDATE ERROR:', updErr)
+    return { error: `UPDATE falló: ${updErr.message}. Asegurate de correr migration 011.`, isCorrect: false, finished: false, result: null }
+  }
+
+  console.log('[submitDuelAnswer] UPDATE result row:', updatedRow)
+
+  // Verify the value actually persisted (catches silent failures from missing columns)
+  const myField = isChallenger ? 'challenger_answer' : 'opponent_answer'
+  const persistedVal = (updatedRow as Record<string, unknown> | null)?.[myField]
+  if (typeof persistedVal !== 'string' || persistedVal !== answer) {
+    console.log('[submitDuelAnswer] VALUE NOT PERSISTED — column missing or RLS blocked. Got:', persistedVal)
+    return {
+      error: `La columna "${myField}" no se actualizó (valor leído: ${JSON.stringify(persistedVal)}). Corré la migration 011 en Supabase.`,
+      isCorrect: false, finished: false, result: null,
+    }
+  }
 
   // Update score in duel
   if (isCorrect) {
