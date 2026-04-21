@@ -197,6 +197,36 @@ export async function cancelDuel(duelId: string) {
   return { error: null }
 }
 
+// ─── Diagnostic — dumps actual schema + rows of duel_questions for a duel ───
+export async function diagnoseDuelQuestions(duelId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'No autenticado', columns: [], rows: [], hasAnswerColumns: false }
+
+  const { data: rows, error } = await supabase
+    .from('duel_questions')
+    .select('*')
+    .eq('duel_id', duelId)
+
+  if (error) {
+    return { error: error.message, columns: [], rows: [], hasAnswerColumns: false }
+  }
+
+  const columns = rows && rows.length > 0 ? Object.keys(rows[0]) : []
+  const hasAnswerColumns =
+    columns.includes('challenger_answer') &&
+    columns.includes('opponent_answer') &&
+    columns.includes('challenger_correct') &&
+    columns.includes('opponent_correct')
+
+  console.log('[diagnose:server] duelId=', duelId, 'rowCount=', rows?.length ?? 0)
+  console.log('[diagnose:server] columns:', columns)
+  console.log('[diagnose:server] hasAnswerColumns:', hasAnswerColumns)
+  console.log('[diagnose:server] rows:', rows)
+
+  return { error: null, columns, rows: rows ?? [], hasAnswerColumns }
+}
+
 // ─── Idempotent finish-checker — calculates winner & awards points if both done ───
 export async function checkAndFinishDuel(duelId: string): Promise<{
   error: string | null
@@ -367,7 +397,13 @@ export async function submitDuelAnswer(
   duelId: string,
   duelQuestionId: string,
   answer: string
-): Promise<{ error: string | null; isCorrect: boolean; finished: boolean; result: string | null }> {
+): Promise<{
+  error: string | null
+  isCorrect: boolean
+  finished: boolean
+  result: string | null
+  _debug?: Record<string, unknown>
+}> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'No autenticado', isCorrect: false, finished: false, result: null }
@@ -408,28 +444,50 @@ export async function submitDuelAnswer(
     duelQuestionId, isChallenger, payload: updatePayload,
   })
 
+  // Pre-update: snapshot the row to compare schemas
+  const { data: rowBefore } = await supabase
+    .from('duel_questions')
+    .select('*')
+    .eq('id', duelQuestionId)
+    .maybeSingle()
+
   const { data: updatedRow, error: updErr } = await supabase
     .from('duel_questions')
     .update(updatePayload)
     .eq('id', duelQuestionId)
-    .select('id, challenger_answer, challenger_correct, opponent_answer, opponent_correct')
-    .single()
+    .select('*')
+    .maybeSingle()
+
+  console.log('[submitDuelAnswer] UPDATE result:', { updatedRow, updErr })
 
   if (updErr) {
     console.log('[submitDuelAnswer] UPDATE ERROR:', updErr)
-    return { error: `UPDATE falló: ${updErr.message}. Asegurate de correr migration 011.`, isCorrect: false, finished: false, result: null }
+    return {
+      error: `UPDATE falló: ${updErr.message}. Asegurate de correr migration 011.`,
+      isCorrect: false, finished: false, result: null,
+      _debug: { stage: 'update-error', error: updErr, payload: updatePayload, rowBefore },
+    }
   }
 
-  console.log('[submitDuelAnswer] UPDATE result row:', updatedRow)
-
-  // Verify the value actually persisted (catches silent failures from missing columns)
+  // Verify the value actually persisted
   const myField = isChallenger ? 'challenger_answer' : 'opponent_answer'
   const persistedVal = (updatedRow as Record<string, unknown> | null)?.[myField]
+  const columnsInRow = updatedRow ? Object.keys(updatedRow) : []
+
   if (typeof persistedVal !== 'string' || persistedVal !== answer) {
-    console.log('[submitDuelAnswer] VALUE NOT PERSISTED — column missing or RLS blocked. Got:', persistedVal)
     return {
-      error: `La columna "${myField}" no se actualizó (valor leído: ${JSON.stringify(persistedVal)}). Corré la migration 011 en Supabase.`,
+      error: `La columna "${myField}" no se actualizó. Valor leído: ${JSON.stringify(persistedVal)}. Columnas en la fila: ${columnsInRow.join(', ')}. Corré la migration 011 en Supabase.`,
       isCorrect: false, finished: false, result: null,
+      _debug: {
+        stage: 'value-not-persisted',
+        myField,
+        persistedVal,
+        columnsInRow,
+        hasAnswerColumns: columnsInRow.includes('challenger_answer') && columnsInRow.includes('opponent_answer'),
+        payload: updatePayload,
+        rowBefore,
+        updatedRow,
+      },
     }
   }
 
@@ -449,5 +507,14 @@ export async function submitDuelAnswer(
     isCorrect,
     finished: finishCheck.finished,
     result:   finishCheck.result,
+    _debug: {
+      stage: 'success',
+      myField,
+      persistedVal,
+      columnsInRow,
+      payload: updatePayload,
+      updatedRow,
+      finishCheck,
+    },
   }
 }

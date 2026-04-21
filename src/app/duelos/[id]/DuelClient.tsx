@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import Avatar from '@/components/Avatar'
 import Confetti from '@/components/Confetti'
 import { getTitle } from '@/lib/titles'
-import { submitDuelAnswer, checkAndFinishDuel } from '../actions'
+import { submitDuelAnswer, checkAndFinishDuel, diagnoseDuelQuestions } from '../actions'
 import { CheckCircle, XCircle, Swords, Clock, Trophy, Shield } from 'lucide-react'
 import { playSuccess, playError, playTick } from '@/lib/sounds'
 import { getAudioManager } from '@/lib/audioManager'
@@ -180,6 +180,22 @@ export default function DuelClient({ userId, duel: initialDuel, duelQuestions: i
 
   const currentDQ = pendingQs[current]
 
+  // ── One-time diagnostic on mount: dump column names + rows to browser console ──
+  useEffect(() => {
+    diagnoseDuelQuestions(duel.id).then(d => {
+      console.log('═══════════════ [diagnose:client] ═══════════════')
+      console.log('error:', d.error)
+      console.log('rowCount:', d.rows.length)
+      console.log('columns in DB:', d.columns)
+      console.log('hasAnswerColumns (challenger_answer + opponent_answer + *_correct):', d.hasAnswerColumns)
+      if (!d.hasAnswerColumns) {
+        console.warn('⚠️  Las columnas de respuesta NO EXISTEN en duel_questions. Corré la migration 011 en Supabase.')
+      }
+      console.log('rows:', d.rows)
+      console.log('═════════════════════════════════════════════════')
+    })
+  }, [duel.id])
+
   // ── Realtime: react to duel row updates instantly ──────────────────────────
   useEffect(() => {
     const supabase = createClient()
@@ -289,7 +305,13 @@ export default function DuelClient({ userId, duel: initialDuel, duelQuestions: i
     setLoading(true); setSelected(option)
 
     const resp = await submitDuelAnswer(duel.id, currentDQ.id, option)
-    console.log('[handleSelect] submitDuelAnswer response:', resp)
+    console.log('═════ [submitDuelAnswer] response ═════')
+    console.log('error:',     resp.error)
+    console.log('isCorrect:', resp.isCorrect)
+    console.log('finished:',  resp.finished)
+    console.log('result:',    resp.result)
+    console.log('_debug:',    resp._debug)
+    console.log('═══════════════════════════════════════')
 
     if (resp.error) {
       // Surface the migration / RLS error

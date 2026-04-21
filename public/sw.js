@@ -1,17 +1,21 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// TREND service worker — v2
-// Strategies:
-//   · Precache core shell on install
-//   · Navigation requests         → network-first, falls back to cached shell
-//   · Static assets (JS/CSS/img)  → cache-first, update in background
-//   · Supabase API / auth         → never cached (always network)
+// TREND service worker — v3
+// Strategy: minimal interception
+//   · Precache the offline shell
+//   · Static assets (js/css/fonts/img) → cache-first with background revalidate
+//   · EVERYTHING ELSE → pass through to network untouched (no respondWith)
+//
+// Reasons:
+//   · Server Actions (POST + Next-Action header) MUST hit the network without
+//     interception, otherwise body/clone races break them silently.
+//   · Dynamic routes like /duelos/* and the RSC payloads behind them carry
+//     state we never want to serve stale.
 // ═══════════════════════════════════════════════════════════════════════════
 
-const VERSION        = "v2";
-const STATIC_CACHE   = `trend-static-${VERSION}`;
-const RUNTIME_CACHE  = `trend-runtime-${VERSION}`;
-const CORE_ASSETS    = [
-  "/",
+const VERSION       = "v3";
+const STATIC_CACHE  = `trend-static-${VERSION}`;
+const RUNTIME_CACHE = `trend-runtime-${VERSION}`;
+const CORE_ASSETS   = [
   "/manifest.json",
   "/icon-192.png",
   "/icon-512.png",
@@ -23,8 +27,6 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     (async () => {
       const cache = await caches.open(STATIC_CACHE);
-      // addAll is atomic — if one fails, nothing caches. Use individual adds so
-      // a missing optional file (e.g. /offline.html) doesn't break install.
       await Promise.all(
         CORE_ASSETS.map((url) =>
           cache.add(url).catch(() => console.warn("[sw] skip", url))
@@ -45,10 +47,6 @@ self.addEventListener("activate", (event) => {
           .filter((k) => k !== STATIC_CACHE && k !== RUNTIME_CACHE)
           .map((k) => caches.delete(k))
       );
-      // Enable navigation preload if available (faster first paint)
-      if (self.registration.navigationPreload) {
-        await self.registration.navigationPreload.enable();
-      }
       await self.clients.claim();
     })()
   );
@@ -56,46 +54,29 @@ self.addEventListener("activate", (event) => {
 
 // ── HELPERS ──────────────────────────────────────────────────────────────────
 function isSameOrigin(request) {
-  return new URL(request.url).origin === self.location.origin;
-}
-
-function isSupabaseRequest(url) {
-  return /supabase\.co/.test(url) || /supabase\.in/.test(url);
+  try {
+    return new URL(request.url).origin === self.location.origin;
+  } catch {
+    return false;
+  }
 }
 
 function isStaticAsset(url) {
-  return /\.(?:js|css|woff2?|ttf|png|jpg|jpeg|svg|webp|ico|gif)$/.test(
+  return /\.(?:js|mjs|css|woff2?|ttf|otf|eot|png|jpg|jpeg|svg|webp|ico|gif|mp3|ogg|wav)$/i.test(
     new URL(url).pathname
   );
-}
-
-// Network-first for HTML navigations — always try fresh, fall back to cache
-async function networkFirst(request, preloadResponse) {
-  const cache = await caches.open(RUNTIME_CACHE);
-  try {
-    const response = (await preloadResponse) || (await fetch(request));
-    if (response && response.ok) {
-      cache.put(request, response.clone());
-    }
-    return response;
-  } catch {
-    const cached = await caches.match(request);
-    if (cached) return cached;
-    const shell = await caches.match("/");
-    if (shell) return shell;
-    return caches.match("/offline.html");
-  }
 }
 
 // Cache-first for static assets — instant, update in background
 async function cacheFirst(request) {
   const cached = await caches.match(request);
   if (cached) {
-    // Revalidate quietly in background
+    // Background revalidate — fire and forget, fully isolated from the response
     fetch(request)
-      .then((fresh) => {
-        if (fresh && fresh.ok) {
-          caches.open(RUNTIME_CACHE).then((c) => c.put(request, fresh.clone()));
+      .then(async (fresh) => {
+        if (fresh && fresh.ok && fresh.type !== "opaque") {
+          const cache = await caches.open(RUNTIME_CACHE);
+          await cache.put(request, fresh.clone());
         }
       })
       .catch(() => {});
@@ -104,8 +85,9 @@ async function cacheFirst(request) {
   try {
     const fresh = await fetch(request);
     if (fresh && fresh.ok && fresh.type !== "opaque") {
+      // Clone BEFORE returning — fully synchronous before any consumer reads
       const cache = await caches.open(RUNTIME_CACHE);
-      cache.put(request, fresh.clone());
+      await cache.put(request, fresh.clone());
     }
     return fresh;
   } catch {
@@ -116,45 +98,40 @@ async function cacheFirst(request) {
 // ── FETCH ────────────────────────────────────────────────────────────────────
 self.addEventListener("fetch", (event) => {
   const { request } = event;
+
+  // 1. Never intercept non-GET (Server Actions are POST)
   if (request.method !== "GET") return;
 
-  const url = request.url;
+  // 2. Never intercept Next.js Server Actions (POST + Next-Action header,
+  //    but defensive: also skip GET with this header just in case)
+  if (request.headers.get("Next-Action")) return;
 
-  // Skip Supabase API/auth — always hit network directly
-  if (isSupabaseRequest(url)) return;
+  // 3. Never intercept Next.js RSC payloads (dynamic React Server Component data)
+  if (request.headers.get("RSC")) return;
+  if (request.headers.get("Next-Router-Prefetch")) return;
+  if (request.headers.get("Next-Router-State-Tree")) return;
 
-  // Skip cross-origin requests (e.g. Google Fonts) — let browser cache handle
+  // 4. Cross-origin → let the browser handle it
   if (!isSameOrigin(request)) return;
 
-  // Navigation: network-first
-  if (request.mode === "navigate") {
-    event.respondWith(networkFirst(request, event.preloadResponse));
-    return;
-  }
+  const url = new URL(request.url);
 
-  // Static assets: cache-first
-  if (isStaticAsset(url)) {
+  // 5. Never intercept dynamic app routes — duels, story mode, profiles, etc.
+  if (url.pathname.startsWith("/duelos/"))  return;
+  if (url.pathname.startsWith("/historia")) return;
+  if (url.pathname.startsWith("/perfil/"))  return;
+  if (url.pathname.startsWith("/api/"))     return;
+  if (url.pathname.startsWith("/_next/data/")) return;
+  // RSC payloads come back from page URLs with ?_rsc=… query param
+  if (url.searchParams.has("_rsc")) return;
+
+  // 6. ONLY intercept static assets — everything else goes to the network untouched
+  if (isStaticAsset(request.url)) {
     event.respondWith(cacheFirst(request));
     return;
   }
 
-  // Everything else same-origin: stale-while-revalidate
-  event.respondWith(
-    (async () => {
-      const cached = await caches.match(request);
-      const fetchPromise = fetch(request)
-        .then((response) => {
-          if (response && response.ok) {
-            caches
-              .open(RUNTIME_CACHE)
-              .then((c) => c.put(request, response.clone()));
-          }
-          return response;
-        })
-        .catch(() => cached);
-      return cached || fetchPromise;
-    })()
-  );
+  // Default: do not call respondWith → request flows to the network normally
 });
 
 // Allow the client to trigger skipWaiting (for "update available" prompts)
