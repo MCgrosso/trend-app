@@ -4,6 +4,25 @@ import Image from 'next/image'
 
 export type Mood = 'neutral' | 'happy' | 'sad'
 
+// Map Bible character names → image path under /public.
+// Add new characters here as new chapters are created.
+const CHARACTER_IMAGES: Record<string, string> = {
+  'Moisés': '/moises.png',
+  'Adán':   '/adam.png',
+}
+
+const FALLBACK_IMAGE = '/moises.png'
+
+function imageFor(character: string): string {
+  // Normalize so "moisés", "Moises", etc. all match
+  const normalized = character.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+  for (const [name, src] of Object.entries(CHARACTER_IMAGES)) {
+    const norm = name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+    if (norm === normalized) return src
+  }
+  return FALLBACK_IMAGE
+}
+
 export default function BibleCharacter({
   character = 'Moisés',
   mood = 'neutral',
@@ -22,6 +41,8 @@ export default function BibleCharacter({
       ? 'grayscale(0.45) brightness(0.85) drop-shadow(0 0 18px rgba(100,116,139,0.45))'
       : 'drop-shadow(0 0 22px rgba(251,191,36,0.45))'
 
+  const src = imageFor(character)
+
   return (
     <div
       className={`relative inline-block ${className}`}
@@ -39,7 +60,7 @@ export default function BibleCharacter({
       />
 
       <Image
-        src="/moises.png"
+        src={src}
         alt={character}
         fill
         priority
