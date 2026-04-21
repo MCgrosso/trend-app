@@ -109,39 +109,46 @@ export default function DuelClient({ userId, duel, duelQuestions }: {
   const currentDQ = pendingQs[current]
 
   // ── Duel audio orchestration ──────────────────────────────────────────────
+  // Phases:
+  //   1. Just won/lost mid-session → one-shot (victoria/derrota), then main
+  //   2. Results screen (mounted on already-finished duel, or draw) → main
+  //   3. Waiting for opponent (I'm done, duel not finished) → main
+  //   4. Actively answering questions → batalla
+  const justFinishedRef = useRef(false)
   useEffect(() => {
     const am = getAudioManager()
     if (!am) return
 
-    if (duel.status === 'active' && !alreadyDone && !finished) {
-      // Active duel in progress → battle theme
-      am.setBackgroundTrack('batalla')
-    } else if (duel.status === 'finished') {
-      // Already finished on mount → just main, no one-shot replay
-      am.setBackgroundTrack('main')
-    } else {
-      am.setBackgroundTrack('main')
-    }
-    // No cleanup — AudioController takes over on next route change
-  }, [duel.status, alreadyDone, finished])
-
-  // When the duel finishes mid-session, fire victoria/derrota one-shot then main
-  const justFinishedRef = useRef(false)
-  useEffect(() => {
-    const am = getAudioManager()
-    if (!am || !finished || result === null || justFinishedRef.current) return
-    justFinishedRef.current = true
-
-    am.setBackgroundTrack(null) // stop batalla immediately
-    if (result === 'draw') {
-      am.setBackgroundTrack('main')
-    } else {
-      const isWin = (result === 'challenger' && isChallenger) || (result === 'opponent' && !isChallenger)
-      am.playOneShot(isWin ? 'victoria' : 'derrota', () => {
+    // 1. Just completed mid-session — fire one-shot, then back to main
+    if (finished && result !== null && !justFinishedRef.current) {
+      justFinishedRef.current = true
+      if (result === 'draw') {
         am.setBackgroundTrack('main')
-      })
+      } else {
+        const isWin = (result === 'challenger' && isChallenger) || (result === 'opponent' && !isChallenger)
+        am.setBackgroundTrack(null)
+        am.playOneShot(isWin ? 'victoria' : 'derrota', () => {
+          am.setBackgroundTrack('main')
+        })
+      }
+      return
     }
-  }, [finished, result, isChallenger])
+
+    // 2. Results screen from mount (or after the one-shot already fired) → main
+    if (duel.status === 'finished' || justFinishedRef.current) {
+      am.setBackgroundTrack('main')
+      return
+    }
+
+    // 3. Waiting for opponent → main
+    if (finished || alreadyDone || !currentDQ) {
+      am.setBackgroundTrack('main')
+      return
+    }
+
+    // 4. Actively answering → batalla
+    am.setBackgroundTrack('batalla')
+  }, [duel.status, finished, alreadyDone, result, isChallenger, currentDQ])
 
   async function handleSelect(option: Option) {
     if (!currentDQ || loading || showResult) return

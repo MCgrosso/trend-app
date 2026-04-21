@@ -1,13 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { usePathname } from 'next/navigation'
 import { Volume2, VolumeX } from 'lucide-react'
 import { getAudioManager } from '@/lib/audioManager'
 
 export default function MusicToggle() {
-  const pathname = usePathname()
-  const [muted, setMuted]   = useState(false)
+  const [muted, setMuted]     = useState(false)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -18,11 +16,7 @@ export default function MusicToggle() {
     return am.subscribe(() => setMuted(am.isMuted()))
   }, [])
 
-  // Hide on auth/admin pages where the BottomNav is also hidden
-  const hidden = pathname.startsWith('/admin') ||
-                 pathname.startsWith('/login') ||
-                 pathname.startsWith('/register')
-  if (!mounted || hidden) return null
+  if (!mounted) return null
 
   function toggle() {
     const am = getAudioManager()

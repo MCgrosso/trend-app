@@ -5,13 +5,9 @@ import { usePathname } from 'next/navigation'
 import { getAudioManager, BgTrack } from '@/lib/audioManager'
 
 function trackForRoute(pathname: string): BgTrack | 'duel-page' {
-  if (pathname.startsWith('/admin')   ||
-      pathname.startsWith('/login')   ||
-      pathname.startsWith('/register')) return null
   if (pathname.startsWith('/historia')) return 'historia'
-  if (pathname === '/duelos')           return null         // list page → silence
-  if (pathname.startsWith('/duelos/'))  return 'duel-page'  // DuelClient owns audio here
-  return 'main'
+  if (pathname.startsWith('/duelos/'))  return 'duel-page'  // DuelClient owns audio
+  return 'main'                                              // everything else
 }
 
 export default function AudioController() {
