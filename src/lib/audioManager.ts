@@ -1,13 +1,14 @@
 // Global audio manager — single instance lives in the browser, survives
 // route changes, handles autoplay policy + mute persistence.
 
-export type BgTrack  = 'main' | 'historia' | 'batalla' | null
+export type BgTrack  = 'main' | 'historia' | 'batalla' | 'dyg' | null
 export type OneShot  = 'victoria' | 'derrota'
 
 const VOLUME: Record<Exclude<BgTrack, null> | OneShot, number> = {
   main:     0.30,
   historia: 0.30,
   batalla:  0.40,
+  dyg:      0.40,
   victoria: 0.70,
   derrota:  0.50,
 }
@@ -19,6 +20,7 @@ const FILENAME: Record<Exclude<BgTrack, null> | OneShot, string> = {
   main:     'main',
   historia: 'historia',
   batalla:  'victoria',
+  dyg:      'dyg',
   victoria: 'batalla',
   derrota:  'derrota',
 }

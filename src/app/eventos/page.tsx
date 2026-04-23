@@ -4,10 +4,12 @@ import Link from 'next/link'
 import Logo from '@/components/Logo'
 import Stars from '@/components/Stars'
 import { ChevronLeft, Calendar, MapPin, Clock } from 'lucide-react'
+import EventosMusic from './EventosMusic'
 
 export default function EventosPage() {
   return (
     <div className="min-h-screen relative">
+      <EventosMusic />
       <Stars count={60} />
 
       <div className="relative z-10">
