@@ -16,6 +16,7 @@ interface ProfileRow {
   last_name: string
   avatar_url: string | null
   frame: string | null
+  avatar_bg: string | null
   title: string | null
   bio: string | null
   total_score: number
@@ -90,6 +91,7 @@ export default function PublicProfile({
                     firstName={profile.first_name}
                     size="lg"
                     frame={profile.frame ?? 'white'}
+                    bg={profile.avatar_bg ?? 'purple'}
                   />
                 </div>
               </div>

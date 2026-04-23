@@ -19,7 +19,7 @@ export default async function DuelosPage() {
   ] = await Promise.all([
     supabase
       .from('profiles')
-      .select('id, username, first_name, avatar_url, frame, wins, losses, draws, win_streak, best_streak, title')
+      .select('id, username, first_name, avatar_url, frame, avatar_bg, wins, losses, draws, win_streak, best_streak, title')
       .eq('id', user.id)
       .single(),
 
@@ -27,8 +27,8 @@ export default async function DuelosPage() {
       .from('duels')
       .select(`
         *,
-        challenger:profiles!duels_challenger_id_fkey(id, username, first_name, avatar_url, frame, title),
-        opponent:profiles!duels_opponent_id_fkey(id, username, first_name, avatar_url, frame, title)
+        challenger:profiles!duels_challenger_id_fkey(id, username, first_name, avatar_url, frame, avatar_bg, title),
+        opponent:profiles!duels_opponent_id_fkey(id, username, first_name, avatar_url, frame, avatar_bg, title)
       `)
       .or(`challenger_id.eq.${user.id},opponent_id.eq.${user.id}`)
       .order('created_at', { ascending: false })

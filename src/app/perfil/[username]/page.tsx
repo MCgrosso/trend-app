@@ -15,7 +15,7 @@ export default async function PerfilPublicoPage({
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, username, first_name, last_name, avatar_url, frame, title, bio, total_score, streak_days, wins, losses, draws, win_streak, best_streak, created_at')
+    .select('id, username, first_name, last_name, avatar_url, frame, avatar_bg, title, bio, total_score, streak_days, wins, losses, draws, win_streak, best_streak, created_at')
     .ilike('username', username)
     .maybeSingle()
 

@@ -5,7 +5,9 @@ import Logo from '@/components/Logo'
 import Avatar from '@/components/Avatar'
 import Stars from '@/components/Stars'
 import Link from 'next/link'
-import { Swords, Trophy, Megaphone, Scroll, ChevronRight, Flame, CheckCircle2, Sparkles } from 'lucide-react'
+import { Swords, Trophy, Scroll, ChevronRight, Flame, CheckCircle2, Sparkles } from 'lucide-react'
+import NotificationBellServer from '@/components/NotificationBellServer'
+import EventBanner from '@/components/EventBanner'
 
 export default async function HomePage() {
   const supabase = await createClient()
@@ -61,10 +63,13 @@ export default async function HomePage() {
         <header className="px-4 pt-7 pb-5 flex items-center justify-between max-w-lg mx-auto">
           <Logo size="md" />
           {user ? (
-            <Link href="/profile" className="flex items-center gap-2 bg-[#0f0a2e] rounded-full pl-1 pr-3 py-1 border border-purple-600/40 hover:border-purple-400/70 transition-colors">
-              <Avatar avatarUrl={profile?.avatar_url} firstName={profile?.first_name} size="xs" frame={profile?.frame} />
-              <span className="text-xs text-purple-200 font-semibold">@{profile?.username}</span>
-            </Link>
+            <div className="flex items-center gap-2">
+              <NotificationBellServer userId={user.id} />
+              <Link href="/profile" className="flex items-center gap-2 bg-[#0f0a2e] rounded-full pl-1 pr-3 py-1 border border-purple-600/40 hover:border-purple-400/70 transition-colors">
+                <Avatar avatarUrl={profile?.avatar_url} firstName={profile?.first_name} size="xs" frame={profile?.frame} bg={profile?.avatar_bg} />
+                <span className="text-xs text-purple-200 font-semibold">@{profile?.username}</span>
+              </Link>
+            </div>
           ) : (
             <Link href="/login" className="bg-gradient-to-r from-purple-600 to-purple-500 hover:brightness-110 text-white text-sm font-bold px-4 py-2 rounded-full transition-all">
               Ingresar
@@ -152,6 +157,9 @@ export default async function HomePage() {
             </div>
           )}
 
+          {/* ── EVENT BANNER ── */}
+          <EventBanner />
+
           {/* ── STREAK BAR ── */}
           {user && profile && (
             <div className="relative bg-gradient-to-r from-[#1a0a2e] to-[#0f0a2e] rounded-2xl p-3 border border-amber-500/30 overflow-hidden animate-gold-pulse">
@@ -196,8 +204,8 @@ export default async function HomePage() {
             </Link>
           )}
 
-          {/* ── 2x2 GRID ── */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* ── QUICK ACCESS GRID ── */}
+          <div className="grid grid-cols-3 gap-3">
             <QuickCard
               href="/duelos"
               icon={<Swords size={22} />}
@@ -216,15 +224,8 @@ export default async function HomePage() {
               href="/historia"
               icon={<Scroll size={22} />}
               label="HISTORIA"
-              hint="Recorrido bíblico"
+              hint="Viaje bíblico"
               color="green"
-            />
-            <QuickCard
-              href="/anuncios"
-              icon={<Megaphone size={22} />}
-              label="ANUNCIOS"
-              hint="Novedades"
-              color="blue"
             />
           </div>
 

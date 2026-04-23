@@ -12,7 +12,7 @@ import { playSuccess, playError, playTick } from '@/lib/sounds'
 import { getAudioManager } from '@/lib/audioManager'
 
 interface DuelProfile {
-  id: string; username: string; first_name: string; avatar_url: string | null; frame: string | null; title: string | null
+  id: string; username: string; first_name: string; avatar_url: string | null; frame: string | null; avatar_bg: string | null; title: string | null
 }
 
 interface QuestionData {
@@ -440,7 +440,7 @@ export default function DuelClient({ userId, duel: initialDuel, duelQuestions: i
               {/* Score display */}
               <div className="flex items-center gap-4 bg-gray-800/50 border border-gray-700/40 rounded-2xl p-5">
                 <div className="flex-1 text-center">
-                  <Avatar avatarUrl={me.avatar_url} firstName={me.first_name} size="md" frame={me.frame} className="mx-auto mb-2" />
+                  <Avatar avatarUrl={me.avatar_url} firstName={me.first_name} size="md" frame={me.frame} bg={me.avatar_bg} className="mx-auto mb-2" />
                   <p className="text-white font-semibold text-sm">{me.first_name}</p>
                   <p className={`text-4xl font-extrabold mt-1 ${isWinner ? 'text-green-400' : 'text-white'}`}>{myFinalScore}</p>
                 </div>
@@ -449,7 +449,7 @@ export default function DuelClient({ userId, duel: initialDuel, duelQuestions: i
                   <p className="text-gray-500 text-xs mt-1">VS</p>
                 </div>
                 <div className="flex-1 text-center">
-                  <Avatar avatarUrl={opp.avatar_url} firstName={opp.first_name} size="md" frame={opp.frame} className="mx-auto mb-2" />
+                  <Avatar avatarUrl={opp.avatar_url} firstName={opp.first_name} size="md" frame={opp.frame} bg={opp.avatar_bg} className="mx-auto mb-2" />
                   <p className="text-white font-semibold text-sm">{opp.first_name}</p>
                   <p className={`text-4xl font-extrabold mt-1 ${!isWinner && !isDraw ? 'text-green-400' : 'text-white'}`}>{oppFinalScore}</p>
                 </div>
@@ -487,7 +487,7 @@ export default function DuelClient({ userId, duel: initialDuel, duelQuestions: i
         {/* VS bar */}
         <div className="flex items-center gap-3 bg-gray-800/50 border border-gray-700/40 rounded-2xl p-3 mb-4">
           <div className="flex items-center gap-2 flex-1">
-            <Avatar avatarUrl={me.avatar_url} firstName={me.first_name} size="xs" frame={me.frame} />
+            <Avatar avatarUrl={me.avatar_url} firstName={me.first_name} size="xs" frame={me.frame} bg={me.avatar_bg} />
             <div>
               <p className="text-white text-xs font-semibold">{me.first_name}</p>
               <p className="text-green-400 text-base font-bold">{myScore}</p>
@@ -499,7 +499,7 @@ export default function DuelClient({ userId, duel: initialDuel, duelQuestions: i
               <p className="text-white text-xs font-semibold">{opp.first_name}</p>
               <p className="text-gray-400 text-base font-bold">?</p>
             </div>
-            <Avatar avatarUrl={opp.avatar_url} firstName={opp.first_name} size="xs" frame={opp.frame} />
+            <Avatar avatarUrl={opp.avatar_url} firstName={opp.first_name} size="xs" frame={opp.frame} bg={opp.avatar_bg} />
           </div>
         </div>
 

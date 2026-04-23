@@ -17,6 +17,7 @@ interface DuelProfile {
   first_name: string
   avatar_url: string | null
   frame: string | null
+  avatar_bg: string | null
   title: string | null
 }
 
@@ -43,6 +44,7 @@ interface Player {
   last_name: string
   avatar_url: string | null
   frame: string | null
+  avatar_bg: string | null
   title: string | null
   total_score: number
   wins: number
@@ -95,7 +97,7 @@ function PlayerCard({
         </span>
 
         <Link href={`/perfil/${player.username}`} className="flex items-center gap-3 flex-1 min-w-0 group">
-          <Avatar avatarUrl={player.avatar_url} firstName={player.first_name} size="sm" frame={player.frame} />
+          <Avatar avatarUrl={player.avatar_url} firstName={player.first_name} size="sm" frame={player.frame} bg={player.avatar_bg} />
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
@@ -276,7 +278,7 @@ export default function DuelosClient({ userId, profile, duels, dailyCount, chall
 
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, username, first_name, last_name, avatar_url, frame, title, total_score, wins, losses')
+        .select('id, username, first_name, last_name, avatar_url, frame, avatar_bg, title, total_score, wins, losses')
         .order('total_score', { ascending: false })
 
       if (error) {
@@ -448,7 +450,7 @@ export default function DuelosClient({ userId, profile, duels, dailyCount, chall
               {pendingReceived.map(duel => (
                 <div key={duel.id} className="bg-yellow-900/20 border border-yellow-700/40 rounded-2xl p-4 animate-bounce-in">
                   <div className="flex items-center gap-3 mb-3">
-                    <Avatar avatarUrl={duel.challenger.avatar_url} firstName={duel.challenger.first_name} size="sm" frame={duel.challenger.frame} />
+                    <Avatar avatarUrl={duel.challenger.avatar_url} firstName={duel.challenger.first_name} size="sm" frame={duel.challenger.frame} bg={duel.challenger.avatar_bg} />
                     <div className="flex-1">
                       <p className="text-white font-semibold text-sm">{duel.challenger.first_name}</p>
                       <p className="text-yellow-400 text-xs flex items-center gap-1"><Swords size={10} /> @{duel.challenger.username} te desafió</p>
@@ -477,7 +479,7 @@ export default function DuelosClient({ userId, profile, duels, dailyCount, chall
             <div className="space-y-2">
               {pendingSent.map(duel => (
                 <div key={duel.id} className="bg-gray-800/40 border border-gray-700/40 rounded-2xl p-3 flex items-center gap-3">
-                  <Avatar avatarUrl={duel.opponent.avatar_url} firstName={duel.opponent.first_name} size="sm" frame={duel.opponent.frame} />
+                  <Avatar avatarUrl={duel.opponent.avatar_url} firstName={duel.opponent.first_name} size="sm" frame={duel.opponent.frame} bg={duel.opponent.avatar_bg} />
                   <div className="flex-1">
                     <p className="text-white text-sm font-medium">{duel.opponent.first_name}</p>
                     <p className="text-gray-500 text-xs flex items-center gap-1"><Clock size={10} /> Pendiente</p>
@@ -501,7 +503,7 @@ export default function DuelosClient({ userId, profile, duels, dailyCount, chall
                   <button key={duel.id} onClick={() => !done && router.push(`/duelos/${duel.id}`)}
                     disabled={done}
                     className="w-full bg-purple-900/30 border border-purple-700/40 rounded-2xl p-4 flex items-center gap-3 hover:border-purple-500/60 transition-all disabled:opacity-60 text-left">
-                    <Avatar avatarUrl={opp.avatar_url} firstName={opp.first_name} size="sm" frame={opp.frame} />
+                    <Avatar avatarUrl={opp.avatar_url} firstName={opp.first_name} size="sm" frame={opp.frame} bg={opp.avatar_bg} />
                     <div className="flex-1">
                       <p className="text-white text-sm font-medium">vs @{opp.username}</p>
                       <p className="text-purple-400 text-xs">{done ? 'Esperando rival...' : '¡Jugá ahora!'}</p>
@@ -526,7 +528,7 @@ export default function DuelosClient({ userId, profile, duels, dailyCount, chall
                 return (
                   <button key={duel.id} onClick={() => router.push(`/duelos/${duel.id}`)}
                     className="w-full bg-gray-800/40 border border-gray-700/40 rounded-2xl p-3 flex items-center gap-3 hover:border-gray-600 transition-all text-left">
-                    <Avatar avatarUrl={opp.avatar_url} firstName={opp.first_name} size="sm" frame={opp.frame} />
+                    <Avatar avatarUrl={opp.avatar_url} firstName={opp.first_name} size="sm" frame={opp.frame} bg={opp.avatar_bg} />
                     <div className="flex-1">
                       <p className="text-white text-sm font-medium">vs @{opp.username}</p>
                       <p className={`text-xs font-semibold ${isWinner ? 'text-green-400' : isDraw ? 'text-yellow-400' : 'text-red-400'}`}>

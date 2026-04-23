@@ -304,3 +304,116 @@ body {
   background: #7c3aed;
   border-radius: 2px;
 }
+
+/* ═══════════ AVATAR BACKGROUNDS ═══════════ */
+
+/* Basic — solid fills */
+.bg-av-purple { background: #7c3aed; }
+.bg-av-blue   { background: #2563eb; }
+.bg-av-green  { background: #10b981; }
+.bg-av-red    { background: #dc2626; }
+.bg-av-orange { background: #ea580c; }
+.bg-av-pink   { background: #db2777; }
+.bg-av-dark   { background: #1f2937; }
+
+/* Galaxy — stars rotating over a deep-space gradient */
+@keyframes av-galaxy-rotate {
+  from { transform: rotate(0deg);   }
+  to   { transform: rotate(360deg); }
+}
+.bg-av-galaxy {
+  background: radial-gradient(circle at 30% 40%, #4c1d95 0%, #1e1b4b 45%, #000 100%);
+  position: relative;
+  overflow: hidden;
+}
+.bg-av-galaxy::before {
+  content: '';
+  position: absolute; inset: -20%;
+  background-image:
+    radial-gradient(circle at 20% 30%, #fff 1px, transparent 1.5px),
+    radial-gradient(circle at 70% 60%, #fde68a 1px, transparent 1.5px),
+    radial-gradient(circle at 45% 85%, #a5b4fc 0.8px, transparent 1.2px),
+    radial-gradient(circle at 85% 20%, #fff 0.7px, transparent 1px);
+  background-size: 40px 40px, 60px 60px, 50px 50px, 30px 30px;
+  animation: av-galaxy-rotate 14s linear infinite;
+  pointer-events: none;
+}
+
+/* Fire — flame gradient pulsing up */
+@keyframes av-fire-flicker {
+  0%, 100% { background-position: 0 0;   filter: brightness(1);    }
+  50%      { background-position: 0 -4px; filter: brightness(1.25); }
+}
+.bg-av-fire {
+  background:
+    radial-gradient(ellipse at 50% 110%, #fbbf24 0%, #f97316 30%, #dc2626 60%, #7f1d1d 100%);
+  background-size: 100% 140%;
+  animation: av-fire-flicker 0.9s ease-in-out infinite;
+}
+
+/* Rainbow — hue-shifting gradient */
+@keyframes av-rainbow-shift {
+  0%   { background-position:   0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+.bg-av-rainbow {
+  background: linear-gradient(90deg,
+    #ef4444, #f97316, #eab308, #22c55e, #06b6d4, #6366f1, #a855f7, #ec4899, #ef4444);
+  background-size: 200% 200%;
+  animation: av-rainbow-shift 4s linear infinite;
+}
+
+/* Gold — base + shimmer sweep */
+@keyframes av-gold-shimmer {
+  0%   { transform: translateX(-120%) rotate(25deg); }
+  100% { transform: translateX(120%)  rotate(25deg); }
+}
+.bg-av-gold {
+  background: linear-gradient(135deg, #fcd34d 0%, #d97706 50%, #fbbf24 100%);
+  position: relative;
+  overflow: hidden;
+}
+.bg-av-gold::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(110deg,
+    transparent 35%, rgba(255,255,255,0.7) 50%, transparent 65%);
+  animation: av-gold-shimmer 2.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Holy — white base with rising particles */
+@keyframes av-holy-particles {
+  0%   { transform: translateY(0)    scale(1);   opacity: 0.9; }
+  100% { transform: translateY(-40px) scale(0.3); opacity: 0;   }
+}
+.bg-av-holy {
+  background: radial-gradient(circle at 50% 50%, #ffffff 0%, #e0e7ff 60%, #c7d2fe 100%);
+  position: relative;
+  overflow: hidden;
+}
+.bg-av-holy::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image:
+    radial-gradient(circle at 25% 90%, #ffffff 1.5px, transparent 2px),
+    radial-gradient(circle at 60% 80%, #fde68a 1.2px, transparent 1.8px),
+    radial-gradient(circle at 85% 95%, #ffffff 1px, transparent 1.5px);
+  background-size: 100% 100%;
+  animation: av-holy-particles 2.4s ease-out infinite;
+  pointer-events: none;
+}
+
+/* ═══════════ NOTIFICATION DRAWER ═══════════ */
+@keyframes notif-drawer-in {
+  from { transform: translateY(-12px); opacity: 0; }
+  to   { transform: translateY(0);     opacity: 1; }
+}
+.animate-notif-drawer { animation: notif-drawer-in 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+/* ═══════════ EVENT BANNER ═══════════ */
+@keyframes event-glow {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(212, 162, 71, 0.6), 0 0 22px rgba(251, 191, 36, 0.25); }
+  50%       { box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.9), 0 0 36px rgba(251, 191, 36, 0.5);  }
+}
+.animate-event-glow { animation: event-glow 2.8s ease-in-out infinite; }

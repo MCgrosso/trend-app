@@ -12,6 +12,7 @@ import Avatar from '@/components/Avatar'
 import Link from 'next/link'
 import { getMedal } from '@/lib/medals'
 import { getTitle, getNextTitle, TITLES } from '@/lib/titles'
+import { computeUnlockedBgs } from '@/lib/avatarBackgrounds'
 
 export default async function ProfilePage() {
   const supabase = await createClient()
@@ -118,6 +119,15 @@ export default async function ProfilePage() {
     return total > 0 && answered >= total
   })
 
+  // Fondos de avatar desbloqueados
+  const unlockedBgs = computeUnlockedBgs({
+    totalScore: profile?.total_score ?? 0,
+    streakDays: profile?.streak_days ?? 0,
+    isWeeklyChampion,
+    duelWins:   profile?.wins ?? 0,
+    completedStoryChapters: completedChapters.length,
+  })
+
   // Total Bible chapters approximation (OT + NT = 1189)
   const BIBLE_TOTAL_CHAPTERS = 1189
   const biblePct = Math.round((completedChapters.length / BIBLE_TOTAL_CHAPTERS) * 10000) / 100
@@ -146,6 +156,7 @@ export default async function ProfilePage() {
                   firstName={profile?.first_name}
                   size="lg"
                   frame={profile?.frame ?? 'white'}
+                  bg={profile?.avatar_bg ?? 'purple'}
                 />
               </div>
             </div>
@@ -183,8 +194,10 @@ export default async function ProfilePage() {
               avatarUrl={profile?.avatar_url ?? null}
               firstName={profile?.first_name ?? null}
               frame={profile?.frame ?? 'white'}
+              avatarBg={profile?.avatar_bg ?? 'purple'}
               unlockedSpecial={unlockedSpecial}
               unlockedFrames={unlockedFrames}
+              unlockedBgs={unlockedBgs}
             />
           </div>
         </div>

@@ -15,6 +15,7 @@ interface GlobalProfile {
   total_score: number
   avatar_url: string | null
   frame: string | null
+  avatar_bg: string | null
 }
 
 interface Props {
@@ -85,9 +86,9 @@ export default function RankingClient({
         <>
           {globalTop10.length >= 3 && (
             <Podium
-              first={{ avatarUrl: globalTop10[0].avatar_url, frame: globalTop10[0].frame, firstName: globalTop10[0].first_name, username: globalTop10[0].username, score: globalTop10[0].total_score }}
-              second={{ avatarUrl: globalTop10[1].avatar_url, frame: globalTop10[1].frame, firstName: globalTop10[1].first_name, username: globalTop10[1].username, score: globalTop10[1].total_score }}
-              third={{ avatarUrl: globalTop10[2].avatar_url, frame: globalTop10[2].frame, firstName: globalTop10[2].first_name, username: globalTop10[2].username, score: globalTop10[2].total_score }}
+              first={{ avatarUrl: globalTop10[0].avatar_url, frame: globalTop10[0].frame, bg: globalTop10[0].avatar_bg, firstName: globalTop10[0].first_name, username: globalTop10[0].username, score: globalTop10[0].total_score }}
+              second={{ avatarUrl: globalTop10[1].avatar_url, frame: globalTop10[1].frame, bg: globalTop10[1].avatar_bg, firstName: globalTop10[1].first_name, username: globalTop10[1].username, score: globalTop10[1].total_score }}
+              third={{ avatarUrl: globalTop10[2].avatar_url, frame: globalTop10[2].frame, bg: globalTop10[2].avatar_bg, firstName: globalTop10[2].first_name, username: globalTop10[2].username, score: globalTop10[2].total_score }}
             />
           )}
 
@@ -107,7 +108,7 @@ export default function RankingClient({
                     <RankIcon rank={idx + 1} />
                   </div>
                   <Link href={`/perfil/${p.username}`} className="flex items-center gap-3 flex-1 min-w-0 group">
-                    <Avatar avatarUrl={p.avatar_url} firstName={p.first_name} size="sm" frame={p.frame} />
+                    <Avatar avatarUrl={p.avatar_url} firstName={p.first_name} size="sm" frame={p.frame} bg={p.avatar_bg} />
                     <div className="flex-1 min-w-0">
                       <p className={`font-semibold truncate group-hover:text-cyan-300 transition-colors ${isMe ? 'text-purple-200' : 'text-white'}`}>
                         {p.first_name} {p.last_name}
@@ -141,9 +142,9 @@ export default function RankingClient({
         <>
           {weeklyTop10.filter(p => p.weekly_score > 0).length >= 3 && (
             <Podium
-              first={{ avatarUrl: weeklyTop10[0].avatar_url, frame: weeklyTop10[0].frame, firstName: weeklyTop10[0].first_name, username: weeklyTop10[0].username, score: weeklyTop10[0].weekly_score }}
-              second={{ avatarUrl: weeklyTop10[1].avatar_url, frame: weeklyTop10[1].frame, firstName: weeklyTop10[1].first_name, username: weeklyTop10[1].username, score: weeklyTop10[1].weekly_score }}
-              third={{ avatarUrl: weeklyTop10[2].avatar_url, frame: weeklyTop10[2].frame, firstName: weeklyTop10[2].first_name, username: weeklyTop10[2].username, score: weeklyTop10[2].weekly_score }}
+              first={{ avatarUrl: weeklyTop10[0].avatar_url, frame: weeklyTop10[0].frame, bg: weeklyTop10[0].avatar_bg, firstName: weeklyTop10[0].first_name, username: weeklyTop10[0].username, score: weeklyTop10[0].weekly_score }}
+              second={{ avatarUrl: weeklyTop10[1].avatar_url, frame: weeklyTop10[1].frame, bg: weeklyTop10[1].avatar_bg, firstName: weeklyTop10[1].first_name, username: weeklyTop10[1].username, score: weeklyTop10[1].weekly_score }}
+              third={{ avatarUrl: weeklyTop10[2].avatar_url, frame: weeklyTop10[2].frame, bg: weeklyTop10[2].avatar_bg, firstName: weeklyTop10[2].first_name, username: weeklyTop10[2].username, score: weeklyTop10[2].weekly_score }}
             />
           )}
 
@@ -166,7 +167,7 @@ export default function RankingClient({
                     <div className="w-8 flex items-center justify-center flex-shrink-0">
                       <RankIcon rank={idx + 1} />
                     </div>
-                    <Avatar avatarUrl={p.avatar_url} firstName={p.first_name} size="sm" frame={p.frame} />
+                    <Avatar avatarUrl={p.avatar_url} firstName={p.first_name} size="sm" frame={p.frame} bg={p.avatar_bg} />
                     <div className="flex-1 min-w-0">
                       <p className={`font-semibold truncate ${isMe ? 'text-purple-200' : 'text-white'}`}>
                         {p.first_name} {p.last_name}
@@ -226,9 +227,9 @@ export default function RankingClient({
 function Podium({
   first, second, third,
 }: {
-  first:  { avatarUrl: string | null; frame: string | null; firstName: string; username: string; score: number }
-  second: { avatarUrl: string | null; frame: string | null; firstName: string; username: string; score: number }
-  third:  { avatarUrl: string | null; frame: string | null; firstName: string; username: string; score: number }
+  first:  { avatarUrl: string | null; frame: string | null; bg: string | null; firstName: string; username: string; score: number }
+  second: { avatarUrl: string | null; frame: string | null; bg: string | null; firstName: string; username: string; score: number }
+  third:  { avatarUrl: string | null; frame: string | null; bg: string | null; firstName: string; username: string; score: number }
 }) {
   return (
     <div className="relative mb-6 pt-4">
@@ -237,7 +238,7 @@ function Podium({
       <div className="relative grid grid-cols-3 gap-2 items-end">
         {/* 2nd */}
         <Link href={`/perfil/${second.username}`} className="animate-podium-2 flex flex-col items-center group">
-          <Avatar avatarUrl={second.avatarUrl} firstName={second.firstName} size="md" frame={second.frame} />
+          <Avatar avatarUrl={second.avatarUrl} firstName={second.firstName} size="md" frame={second.frame} bg={second.bg} />
           <p className="text-xs text-gray-200 font-bold mt-1 text-center truncate w-full px-1 group-hover:text-cyan-300 transition-colors">{second.username}</p>
           <p className="text-xs text-amber-300 font-bold">{second.score} pts</p>
           <div className="mt-2 w-full h-16 rounded-t-xl bg-gradient-to-b from-gray-300 via-gray-400 to-gray-600 flex flex-col items-center justify-center border-2 border-gray-300/50 shadow-[0_0_18px_rgba(229,231,235,0.4)]">
@@ -251,7 +252,7 @@ function Podium({
           <div className="relative">
             <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-2xl animate-spark">👑</span>
             <div className="rounded-full ring-4 ring-amber-400/60 shadow-[0_0_30px_rgba(245,158,11,0.6)]">
-              <Avatar avatarUrl={first.avatarUrl} firstName={first.firstName} size="lg" frame={first.frame} />
+              <Avatar avatarUrl={first.avatarUrl} firstName={first.firstName} size="lg" frame={first.frame} bg={first.bg} />
             </div>
           </div>
           <p className="text-sm font-bold mt-1 text-center truncate w-full px-1 animate-shimmer font-bebas text-base">{first.username}</p>
@@ -264,7 +265,7 @@ function Podium({
 
         {/* 3rd */}
         <Link href={`/perfil/${third.username}`} className="animate-podium-3 flex flex-col items-center group">
-          <Avatar avatarUrl={third.avatarUrl} firstName={third.firstName} size="md" frame={third.frame} />
+          <Avatar avatarUrl={third.avatarUrl} firstName={third.firstName} size="md" frame={third.frame} bg={third.bg} />
           <p className="text-xs text-gray-200 font-bold mt-1 text-center truncate w-full px-1 group-hover:text-cyan-300 transition-colors">{third.username}</p>
           <p className="text-xs text-amber-300 font-bold">{third.score} pts</p>
           <div className="mt-2 w-full h-12 rounded-t-xl bg-gradient-to-b from-orange-400 via-orange-600 to-orange-800 flex flex-col items-center justify-center border-2 border-orange-400/50 shadow-[0_0_18px_rgba(249,115,22,0.4)]">
@@ -281,7 +282,7 @@ function OutOfTopCard({
   rank, profile, score, scoreLabel, medal,
 }: {
   rank: number
-  profile: { avatar_url: string | null; frame?: string | null; first_name: string; last_name: string; username: string }
+  profile: { avatar_url: string | null; frame?: string | null; avatar_bg?: string | null; first_name: string; last_name: string; username: string }
   score: number
   scoreLabel: string
   medal?: { icon: string; label: string } | null
@@ -296,7 +297,7 @@ function OutOfTopCard({
           <span className="text-gray-400 text-sm font-bold">#{rank}</span>
         </div>
         <Link href={`/perfil/${profile.username}`} className="flex items-center gap-3 flex-1 min-w-0 group">
-          <Avatar avatarUrl={profile.avatar_url} firstName={profile.first_name} size="sm" frame={profile.frame} />
+          <Avatar avatarUrl={profile.avatar_url} firstName={profile.first_name} size="sm" frame={profile.frame} bg={profile.avatar_bg} />
           <div className="flex-1 min-w-0">
             <p className="font-semibold text-purple-200 truncate group-hover:text-cyan-300 transition-colors">
               {profile.first_name} {profile.last_name}

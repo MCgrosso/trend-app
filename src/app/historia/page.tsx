@@ -19,7 +19,8 @@ type ChapterRow = {
 }
 
 type TimelineItem = ChapterRow & {
-  state: 'completed' | 'current' | 'available' | 'locked'
+  state: 'current' | 'past' | 'locked'
+  isCompleted: boolean
   total: number
   correct: number
 }
@@ -77,14 +78,14 @@ export default async function HistoriaPage() {
     const answered = answeredByChapter.get(c.id)?.total ?? 0
     const correct = answeredByChapter.get(c.id)?.correct ?? 0
     const isCompleted = total > 0 && answered >= total
-    const isCurrent = c.week_start <= today && today <= c.week_end
-    const isUnlocked = c.week_start <= today
+    // Future chapters (week_start > today) are the only ones locked.
+    // Past chapters (week_end < today) are always replayable, completed or not.
+    // The current chapter (week_start <= today <= week_end) is highlighted.
     let state: TimelineItem['state']
-    if (isCompleted) state = 'completed'
-    else if (isCurrent) state = 'current'
-    else if (isUnlocked) state = 'available'
-    else state = 'locked'
-    return { ...c, state, total, correct }
+    if (c.week_start > today) state = 'locked'
+    else if (today <= c.week_end) state = 'current'
+    else state = 'past'
+    return { ...c, state, isCompleted, total, correct }
   })
 
   return (
@@ -135,19 +136,18 @@ export default async function HistoriaPage() {
 
 function ChapterTimelineItem({ item }: { item: TimelineItem }) {
   const styles = {
-    completed: {
-      card: 'border-emerald-600/50 bg-gradient-to-br from-emerald-900/25 to-emerald-950/40 hover:border-emerald-400/70',
-      dot: 'bg-emerald-500 border-emerald-300',
-      emoji: '',
-    },
     current: {
-      card: 'border-yellow-500/70 bg-gradient-to-br from-yellow-900/35 to-amber-950/50 hover:border-yellow-300 ring-2 ring-yellow-500/30',
+      card: 'border-yellow-500/70 bg-gradient-to-br from-yellow-900/35 to-amber-950/50 hover:border-yellow-300 ring-2 ring-yellow-500/40 shadow-lg shadow-yellow-900/40 animate-pulse-border',
       dot: 'bg-yellow-400 border-yellow-200 ring-4 ring-yellow-500/40',
       emoji: '',
     },
-    available: {
-      card: 'border-amber-700/40 bg-gradient-to-br from-amber-950/40 to-stone-950/60 hover:border-amber-500/70',
-      dot: 'bg-amber-600 border-amber-400',
+    past: {
+      card: item.isCompleted
+        ? 'border-emerald-600/50 bg-gradient-to-br from-emerald-900/25 to-emerald-950/40 hover:border-emerald-400/70'
+        : 'border-amber-700/40 bg-gradient-to-br from-amber-950/40 to-stone-950/60 hover:border-amber-500/70',
+      dot: item.isCompleted
+        ? 'bg-emerald-500 border-emerald-300'
+        : 'bg-amber-600 border-amber-400',
       emoji: '',
     },
     locked: {
@@ -173,33 +173,34 @@ function ChapterTimelineItem({ item }: { item: TimelineItem }) {
               Actual
             </span>
           )}
+          {item.isCompleted && item.state !== 'locked' && (
+            <span className="inline-flex items-center gap-1 text-[9px] bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 px-1.5 rounded-full font-bold uppercase tracking-wider">
+              <CheckCircle2 size={9} /> {item.correct}/{item.total}
+            </span>
+          )}
         </div>
         <p className="font-bebas text-white text-lg leading-none truncate">{item.book} {item.chapter}</p>
         <p className="text-yellow-200/70 text-xs italic truncate">{item.title}</p>
         <p className="text-yellow-300/50 text-[10px] mt-0.5">{item.character_name}</p>
       </div>
       <div className="flex-shrink-0">
-        {item.state === 'completed' && (
-          <div className="flex flex-col items-end gap-1">
-            <span className="inline-flex items-center gap-1 bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 text-[10px] px-2 py-0.5 rounded-full font-bold">
-              <CheckCircle2 size={10} /> Completo
-            </span>
-            <span className="text-emerald-200/80 text-[10px]">{item.correct}/{item.total}</span>
-          </div>
-        )}
         {item.state === 'current' && (
           <span className="inline-flex items-center gap-1 bg-yellow-500/30 border border-yellow-400/60 text-yellow-100 text-[10px] px-2 py-1 rounded-full font-bold">
             <Sparkles size={10} /> Jugar
           </span>
         )}
-        {item.state === 'available' && (
-          <span className="inline-flex items-center gap-1 bg-amber-600/20 border border-amber-500/40 text-amber-200 text-[10px] px-2 py-1 rounded-full font-bold">
-            Disponible
+        {item.state === 'past' && (
+          <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full font-bold border ${
+            item.isCompleted
+              ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300'
+              : 'bg-amber-600/20 border-amber-500/40 text-amber-200'
+          }`}>
+            {item.isCompleted ? 'Rejugar' : 'Jugar'}
           </span>
         )}
         {item.state === 'locked' && (
-          <span className="inline-flex items-center gap-1 bg-stone-700/40 border border-stone-600/40 text-stone-400 text-[10px] px-2 py-1 rounded-full font-bold">
-            <Lock size={10} /> {formatWeekStart(item.week_start)}
+          <span className="inline-flex items-center gap-1 bg-stone-700/40 border border-stone-600/40 text-stone-400 text-[10px] px-2 py-1 rounded-full font-bold whitespace-nowrap">
+            <Lock size={10} /> {formatUnlockDate(item.week_start)}
           </span>
         )}
       </div>
@@ -216,7 +217,8 @@ function ChapterTimelineItem({ item }: { item: TimelineItem }) {
   )
 }
 
-function formatWeekStart(ws: string): string {
-  const d = new Date(ws + 'T00:00:00')
-  return d.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })
+function formatUnlockDate(ws: string): string {
+  // ws is YYYY-MM-DD → "Disponible el DD/MM/YYYY"
+  const [y, m, d] = ws.split('-')
+  return `Disponible el ${d}/${m}/${y}`
 }

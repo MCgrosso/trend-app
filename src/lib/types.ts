@@ -83,6 +83,7 @@ export interface WeeklyProfile {
   last_name: string
   avatar_url: string | null
   frame: string | null
+  avatar_bg: string | null
   weekly_score: number
 }
 

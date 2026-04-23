@@ -6,25 +6,31 @@ import Avatar from '@/components/Avatar'
 import { createClient } from '@/lib/supabase/client'
 import { SPECIAL_AVATARS } from '@/lib/avatars'
 import { BASIC_FRAMES, SPECIAL_FRAMES } from '@/lib/frames'
+import { BASIC_BGS, SPECIAL_BGS } from '@/lib/avatarBackgrounds'
 
 export default function AvatarSection({
   userId,
   avatarUrl,
   firstName,
   frame: initialFrame,
+  avatarBg: initialBg,
   unlockedSpecial,
   unlockedFrames,
+  unlockedBgs,
 }: {
   userId: string
   avatarUrl: string | null
   firstName: string | null
   frame: string | null
+  avatarBg: string | null
   unlockedSpecial: string[]
   unlockedFrames: string[]
+  unlockedBgs: string[]
 }) {
-  const [tab,           setTab]           = useState<'avatar' | 'marco'>('avatar')
+  const [tab, setTab] = useState<'avatar' | 'marco' | 'fondo'>('avatar')
   const [selectedAvatar, setSelectedAvatar] = useState(avatarUrl ?? '')
   const [selectedFrame,  setSelectedFrame]  = useState(initialFrame ?? 'white')
+  const [selectedBg,     setSelectedBg]     = useState(initialBg ?? 'purple')
   const [saving, setSaving] = useState(false)
   const [saved,  setSaved]  = useState(false)
 
@@ -33,7 +39,11 @@ export default function AvatarSection({
     const supabase = createClient()
     await supabase
       .from('profiles')
-      .update({ avatar_url: selectedAvatar || null, frame: selectedFrame })
+      .update({
+        avatar_url: selectedAvatar || null,
+        frame: selectedFrame,
+        avatar_bg: selectedBg,
+      })
       .eq('id', userId)
     setSaving(false)
     setSaved(true)
@@ -42,7 +52,8 @@ export default function AvatarSection({
 
   const hasChanges =
     selectedAvatar !== (avatarUrl ?? '') ||
-    selectedFrame  !== (initialFrame ?? 'white')
+    selectedFrame  !== (initialFrame ?? 'white') ||
+    selectedBg     !== (initialBg ?? 'purple')
 
   return (
     <div className="space-y-4">
@@ -52,27 +63,27 @@ export default function AvatarSection({
         firstName={firstName}
         size="lg"
         frame={selectedFrame}
+        bg={selectedBg}
         className="mx-auto"
       />
 
       {/* Pestañas */}
       <div className="flex gap-1 p-1 bg-gray-900/60 rounded-xl border border-gray-700/50">
-        <button
-          onClick={() => setTab('avatar')}
-          className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
-            tab === 'avatar' ? 'bg-purple-600 text-white shadow' : 'text-gray-400 hover:text-white'
-          }`}
-        >
-          Avatar
-        </button>
-        <button
-          onClick={() => setTab('marco')}
-          className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
-            tab === 'marco' ? 'bg-purple-600 text-white shadow' : 'text-gray-400 hover:text-white'
-          }`}
-        >
-          Marco
-        </button>
+        {([
+          ['avatar', 'Avatar'],
+          ['marco',  'Marco'],
+          ['fondo',  'Fondo'],
+        ] as const).map(([id, label]) => (
+          <button
+            key={id}
+            onClick={() => setTab(id)}
+            className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
+              tab === id ? 'bg-purple-600 text-white shadow' : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       {/* ── Pestaña Avatar ── */}
@@ -122,7 +133,6 @@ export default function AvatarSection({
       {/* ── Pestaña Marco ── */}
       {tab === 'marco' && (
         <div className="space-y-5">
-          {/* Básicos */}
           <div className="space-y-3">
             <p className="text-xs text-gray-400 font-medium text-center">Marcos básicos</p>
             <div className="grid grid-cols-4 gap-3">
@@ -154,7 +164,6 @@ export default function AvatarSection({
             </div>
           </div>
 
-          {/* Especiales */}
           <div className="space-y-3">
             <p className="text-xs text-gray-400 font-medium text-center">Marcos especiales</p>
             <div className="grid grid-cols-3 gap-3">
@@ -196,12 +205,86 @@ export default function AvatarSection({
         </div>
       )}
 
+      {/* ── Pestaña Fondo ── */}
+      {tab === 'fondo' && (
+        <div className="space-y-5">
+          <div className="space-y-3">
+            <p className="text-xs text-gray-400 font-medium text-center">Fondos básicos</p>
+            <div className="grid grid-cols-4 gap-3">
+              {BASIC_BGS.map(b => {
+                const active = selectedBg === b.id
+                return (
+                  <button
+                    key={b.id}
+                    type="button"
+                    onClick={() => setSelectedBg(b.id)}
+                    className="flex flex-col items-center gap-2 focus:outline-none"
+                  >
+                    <div
+                      className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-150 ${b.cssClass} ${
+                        active ? 'scale-110 ring-4 ring-white/80 shadow-lg' : 'opacity-80 hover:opacity-100 hover:scale-105 ring-2 ring-white/20'
+                      }`}
+                    >
+                      {active && <span className="text-white text-lg font-bold drop-shadow">✓</span>}
+                    </div>
+                    <span className={`text-[11px] text-center leading-tight ${
+                      active ? 'text-white font-semibold' : 'text-gray-500'
+                    }`}>
+                      {b.label}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <p className="text-xs text-gray-400 font-medium text-center">Fondos especiales</p>
+            <div className="grid grid-cols-3 gap-3">
+              {SPECIAL_BGS.map(b => {
+                const unlocked = unlockedBgs.includes(b.id)
+                const active   = selectedBg === b.id
+                return (
+                  <button
+                    key={b.id}
+                    type="button"
+                    disabled={!unlocked}
+                    onClick={() => unlocked && setSelectedBg(b.id)}
+                    className="flex flex-col items-center gap-2 focus:outline-none"
+                  >
+                    <div
+                      className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl transition-all duration-150 overflow-hidden relative ${
+                        !unlocked
+                          ? 'bg-gray-800 opacity-25 grayscale'
+                          : `${b.cssClass} ${active ? 'scale-110 ring-4 ring-white/80' : 'opacity-80 hover:opacity-100 hover:scale-105 ring-2 ring-white/20'}`
+                      }`}
+                    >
+                      <span className="relative z-10">{!unlocked ? '🔒' : active ? '✓' : b.emoji}</span>
+                    </div>
+                    <div className="text-center">
+                      <p className={`text-[11px] font-medium leading-tight ${
+                        !unlocked ? 'text-gray-700' : active ? 'text-white font-semibold' : 'text-gray-400'
+                      }`}>
+                        {b.emoji} {b.label}
+                      </p>
+                      {!unlocked && (
+                        <p className="text-[10px] text-gray-600 leading-tight mt-0.5">{b.unlock}</p>
+                      )}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
       <button
         onClick={handleSave}
         disabled={saving || !hasChanges}
         className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 disabled:opacity-40 text-white font-semibold py-2.5 rounded-xl transition-all text-sm"
       >
-        {saving ? 'Guardando...' : saved ? '¡Guardado! ✓' : 'Guardar avatar y marco'}
+        {saving ? 'Guardando...' : saved ? '¡Guardado! ✓' : 'Guardar cambios'}
       </button>
     </div>
   )

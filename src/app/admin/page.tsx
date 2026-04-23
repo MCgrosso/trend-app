@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { BookOpen, Megaphone, Calendar, BarChart3, Users, Scroll } from 'lucide-react'
+import { BookOpen, Megaphone, Calendar, BarChart3, Users, Scroll, Bell } from 'lucide-react'
 import Logo from '@/components/Logo'
 
 export default async function AdminPage() {
@@ -28,6 +28,7 @@ export default async function AdminPage() {
     { count: totalAnnouncements },
     { count: totalEvents },
     { count: totalChapters },
+    { count: totalNotifications },
   ] = await Promise.all([
     supabase.from('questions').select('*', { count: 'exact', head: true }),
     supabase.from('questions').select('*', { count: 'exact', head: true }).eq('available_date', today),
@@ -35,6 +36,7 @@ export default async function AdminPage() {
     supabase.from('announcements').select('*', { count: 'exact', head: true }),
     supabase.from('events').select('*', { count: 'exact', head: true }),
     supabase.from('story_chapters').select('*', { count: 'exact', head: true }),
+    supabase.from('notifications').select('*', { count: 'exact', head: true }),
   ])
 
   const sections = [
@@ -65,6 +67,13 @@ export default async function AdminPage() {
       label: 'Modo Historia',
       color: 'yellow',
       stat: `${totalChapters ?? 0} capítulos`,
+    },
+    {
+      href: '/admin/notificaciones',
+      icon: Bell,
+      label: 'Notificaciones',
+      color: 'purple',
+      stat: `${totalNotifications ?? 0} notificaciones`,
     },
   ]
 
