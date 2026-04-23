@@ -66,20 +66,17 @@ export default function EventBanner() {
       <div className="speed-lines speed-lines-med"   aria-hidden />
       <div className="speed-lines speed-lines-thin"  aria-hidden />
 
-      {/* Character image — plain <img>, absolute, object-contain so David & Goliath stay intact */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/dyg.png"
-        alt=""
+      {/* Character image as a background layer — transparent areas let the
+          animated gradient and speed lines underneath bleed through. */}
+      <div
         aria-hidden
-        draggable={false}
         style={{
           position: 'absolute',
           inset: 0,
-          width: '100%',
-          height: '100%',
-          objectFit: 'contain',
-          userSelect: 'none',
+          backgroundImage: "url('/dyg.png')",
+          backgroundSize: 'contain',
+          backgroundRepeat: 'no-repeat',
+          backgroundPosition: 'center',
           pointerEvents: 'none',
         }}
       />
