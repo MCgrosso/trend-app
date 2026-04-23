@@ -417,3 +417,57 @@ body {
   50%       { box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.9), 0 0 36px rgba(251, 191, 36, 0.5);  }
 }
 .animate-event-glow { animation: event-glow 2.8s ease-in-out infinite; }
+
+/* Anime-style horizontal speed lines — three layers at different thicknesses,
+   speeds and opacities. Each layer is a repeating linear gradient that slides
+   left via background-position. */
+@keyframes speed-lines-slide {
+  from { background-position: 0 0; }
+  to   { background-position: -400px 0; }
+}
+
+.speed-lines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+
+/* 1px thin lines — fast */
+.speed-lines-thin {
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.35) 0px,
+    rgba(255, 255, 255, 0.35) 1px,
+    transparent 1px,
+    transparent 22px
+  );
+  background-size: 400px 100%;
+  animation: speed-lines-slide 1.4s linear infinite;
+}
+
+/* 2px medium lines — medium speed, gold tint */
+.speed-lines-med {
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgba(253, 224, 71, 0.45) 0px,
+    rgba(253, 224, 71, 0.45) 2px,
+    transparent 2px,
+    transparent 60px
+  );
+  background-size: 400px 100%;
+  animation: speed-lines-slide 2.4s linear infinite;
+}
+
+/* 3px thick lines — slow, brighter */
+.speed-lines-thick {
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.55) 0px,
+    rgba(255, 255, 255, 0.55) 3px,
+    transparent 3px,
+    transparent 140px
+  );
+  background-size: 400px 100%;
+  animation: speed-lines-slide 3.6s linear infinite;
+}

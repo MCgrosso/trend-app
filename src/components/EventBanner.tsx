@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useEffect, useState } from 'react'
 import { Calendar, ChevronRight } from 'lucide-react'
 
@@ -50,45 +51,82 @@ export default function EventBanner() {
       className="relative block rounded-3xl overflow-hidden border-2 border-amber-500/60 animate-event-glow"
       style={{ aspectRatio: '1983 / 793' }}
     >
-      {/* Background image */}
+      {/* 1. Base animated background — orange-gold gradient */}
       <div
-        className="absolute inset-0 bg-center bg-cover"
-        style={{ backgroundImage: 'url(/dyg.png)' }}
+        className="absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(ellipse at center, #FF6B00 0%, #C4440A 45%, #8B3A00 100%)',
+        }}
         aria-hidden
       />
 
-      {/* Dark overlay — transparent on sides, dark in center for text contrast */}
+      {/* 2. Anime speed lines — three stacked layers at different thicknesses & speeds */}
+      <div className="speed-lines speed-lines-thick" aria-hidden />
+      <div className="speed-lines speed-lines-med"   aria-hidden />
+      <div className="speed-lines speed-lines-thin"  aria-hidden />
+
+      {/* 3. Inner gold vignette / edge glow */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background:
-            'linear-gradient(90deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.55) 30%, rgba(0,0,0,0.7) 50%, rgba(0,0,0,0.55) 70%, rgba(0,0,0,0) 100%)',
+          boxShadow:
+            'inset 0 0 30px rgba(251, 191, 36, 0.55), inset 0 0 80px rgba(234, 88, 12, 0.45)',
         }}
+        aria-hidden
       />
 
-      {/* Content */}
-      <div className="relative h-full flex flex-col items-center justify-center text-center px-4 py-3">
-        <span className="inline-flex items-center gap-1.5 bg-amber-500/25 border border-amber-300/60 text-amber-100 text-[10px] font-bold uppercase tracking-[0.25em] px-2.5 py-0.5 rounded-full">
+      {/* 4. The actual character image — object-contain so David & Goliath stay intact */}
+      <Image
+        src="/dyg.png"
+        alt=""
+        aria-hidden
+        fill
+        priority
+        sizes="(max-width: 640px) 100vw, 512px"
+        className="object-contain select-none pointer-events-none"
+        draggable={false}
+      />
+
+      {/* 5. Content — each text block carries its own dark backdrop for legibility */}
+      <div className="relative h-full flex flex-col items-center justify-center text-center px-4 py-3 gap-1.5">
+        <span className="inline-flex items-center gap-1.5 bg-black/55 backdrop-blur-sm border border-amber-300/70 text-amber-100 text-[10px] font-bold uppercase tracking-[0.25em] px-2.5 py-0.5 rounded-full">
           <Calendar size={10} /> Evento Especial
         </span>
 
         <h2
-          className="font-bebas text-white leading-none mt-2"
-          style={{ fontSize: 'clamp(22px, 7vw, 40px)', textShadow: '0 2px 12px rgba(0,0,0,0.85)' }}
+          className="font-bebas text-white leading-none px-3 py-0.5 rounded-md"
+          style={{
+            fontSize: 'clamp(22px, 7vw, 40px)',
+            textShadow: '0 2px 10px rgba(0,0,0,0.95), 0 0 18px rgba(0,0,0,0.8)',
+            backgroundColor: 'rgba(0,0,0,0.4)',
+          }}
         >
           El Valle de Elá
         </h2>
 
-        <p className="text-amber-100/90 text-[11px] italic mt-0.5 drop-shadow">
+        <p
+          className="text-amber-100 text-[11px] italic px-2 rounded-md"
+          style={{
+            textShadow: '0 1px 4px rgba(0,0,0,0.95)',
+            backgroundColor: 'rgba(0,0,0,0.35)',
+          }}
+        >
           ¿Conocés la historia completa?
         </p>
 
-        <div className="mt-1.5 flex items-baseline gap-2 font-bebas text-amber-300 tabular-nums"
-             style={{ fontSize: 'clamp(14px, 4vw, 22px)', textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}>
+        <div
+          className="flex items-baseline gap-2 font-bebas text-amber-300 tabular-nums px-3 py-0.5 rounded-md"
+          style={{
+            fontSize: 'clamp(14px, 4vw, 22px)',
+            textShadow: '0 1px 4px rgba(0,0,0,0.95)',
+            backgroundColor: 'rgba(0,0,0,0.45)',
+          }}
+        >
           <span>{label}</span>
         </div>
 
-        <span className="mt-1.5 inline-flex items-center gap-1 bg-black/45 border border-amber-400/60 text-amber-100 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full">
+        <span className="inline-flex items-center gap-1 bg-black/60 border border-amber-400/70 text-amber-100 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full">
           Ver más <ChevronRight size={12} />
         </span>
       </div>
