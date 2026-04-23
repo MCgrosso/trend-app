@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import Image from 'next/image'
 import { useEffect, useState } from 'react'
 import { Calendar, ChevronRight } from 'lucide-react'
 
@@ -49,43 +48,40 @@ export default function EventBanner() {
     <Link
       href="/eventos"
       className="relative block rounded-3xl overflow-hidden border-2 border-amber-500/60 animate-event-glow"
-      style={{ aspectRatio: '1983 / 793' }}
+      style={{
+        aspectRatio: '1983 / 793',
+        position: 'relative',
+        overflow: 'hidden',
+        // Base animated background lives on the outermost container so nothing
+        // (image loader, layout, etc.) can paint over it.
+        background:
+          'radial-gradient(ellipse at center, #FF6B00 0%, #C4440A 45%, #8B3A00 100%)',
+        // Inner gold vignette / edge glow baked in alongside the gradient.
+        boxShadow:
+          'inset 0 0 30px rgba(251, 191, 36, 0.55), inset 0 0 80px rgba(234, 88, 12, 0.45)',
+      }}
     >
-      {/* 1. Base animated background — orange-gold gradient */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background:
-            'radial-gradient(ellipse at center, #FF6B00 0%, #C4440A 45%, #8B3A00 100%)',
-        }}
-        aria-hidden
-      />
-
-      {/* 2. Anime speed lines — three stacked layers at different thicknesses & speeds */}
+      {/* Anime speed lines — three stacked layers at different thicknesses & speeds */}
       <div className="speed-lines speed-lines-thick" aria-hidden />
       <div className="speed-lines speed-lines-med"   aria-hidden />
       <div className="speed-lines speed-lines-thin"  aria-hidden />
 
-      {/* 3. Inner gold vignette / edge glow */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          boxShadow:
-            'inset 0 0 30px rgba(251, 191, 36, 0.55), inset 0 0 80px rgba(234, 88, 12, 0.45)',
-        }}
-        aria-hidden
-      />
-
-      {/* 4. The actual character image — object-contain so David & Goliath stay intact */}
-      <Image
+      {/* Character image — plain <img>, absolute, object-contain so David & Goliath stay intact */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
         src="/dyg.png"
         alt=""
         aria-hidden
-        fill
-        priority
-        sizes="(max-width: 640px) 100vw, 512px"
-        className="object-contain select-none pointer-events-none"
         draggable={false}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          width: '100%',
+          height: '100%',
+          objectFit: 'contain',
+          userSelect: 'none',
+          pointerEvents: 'none',
+        }}
       />
 
       {/* 5. Content — each text block carries its own dark backdrop for legibility */}
