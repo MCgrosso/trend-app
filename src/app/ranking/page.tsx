@@ -12,11 +12,25 @@ export default async function RankingPage() {
 
   const { data: globalTop10 } = await supabase
     .from('profiles')
-    .select('id, username, first_name, last_name, total_score, avatar_url, frame, avatar_bg')
+    .select('id, username, first_name, last_name, total_score, avatar_url, frame, avatar_bg, clan_id, church_id')
     .order('total_score', { ascending: false })
     .limit(10)
 
   const { data: weeklyAll } = await supabase.rpc('get_weekly_ranking')
+  const { data: churchRanking } = await supabase.rpc('get_church_ranking')
+
+  // Look up clans + churches referenced by the top 10 so the client can render shields/badges
+  const clanIds   = Array.from(new Set((globalTop10 ?? []).map(p => p.clan_id).filter(Boolean) as string[]))
+  const churchIds = Array.from(new Set((globalTop10 ?? []).map(p => p.church_id).filter(Boolean) as string[]))
+
+  const [{ data: clansLookup }, { data: churchesLookup }] = await Promise.all([
+    clanIds.length > 0
+      ? supabase.from('clans').select('id, name, shield_color, shield_bg, shield_icon').in('id', clanIds)
+      : Promise.resolve({ data: [] as Array<{ id: string; name: string; shield_color: string | null; shield_bg: string | null; shield_icon: string | null }> }),
+    churchIds.length > 0
+      ? supabase.from('churches').select('id, name, abbreviation, icon_emoji').in('id', churchIds)
+      : Promise.resolve({ data: [] as Array<{ id: string; name: string; abbreviation: string | null; icon_emoji: string | null }> }),
+  ])
 
   let userGlobalRank = -1
   let userGlobalProfile = null
@@ -24,7 +38,7 @@ export default async function RankingPage() {
   if (user) {
     const { data: allProfiles } = await supabase
       .from('profiles')
-      .select('id, username, first_name, last_name, total_score, avatar_url, frame, avatar_bg')
+      .select('id, username, first_name, last_name, total_score, avatar_url, frame, avatar_bg, clan_id, church_id')
       .order('total_score', { ascending: false })
 
     userGlobalRank = (allProfiles?.findIndex(p => p.id === user.id) ?? -1) + 1
@@ -49,6 +63,9 @@ export default async function RankingPage() {
           <RankingClient
             globalTop10={globalTop10 ?? []}
             weeklyAll={weeklyAll ?? []}
+            churchRanking={churchRanking ?? []}
+            clansLookup={clansLookup ?? []}
+            churchesLookup={churchesLookup ?? []}
             userId={user?.id ?? null}
             userGlobalRank={userGlobalRank}
             userGlobalProfile={userGlobalProfile}

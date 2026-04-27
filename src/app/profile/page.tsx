@@ -5,10 +5,13 @@ import { redirect } from 'next/navigation'
 import LogoutButton from './LogoutButton'
 import AvatarSection from './AvatarSection'
 import BioEditor from './BioEditor'
+import ChurchSection from './ChurchSection'
 import { Star, Flame, Calendar, Shield, Swords, Trophy, Scroll, BookOpen } from 'lucide-react'
 import Logo from '@/components/Logo'
 import Stars from '@/components/Stars'
 import Avatar from '@/components/Avatar'
+import ClanShield from '@/components/ClanShield'
+import ChurchBadge from '@/components/ChurchBadge'
 import Link from 'next/link'
 import { getMedal } from '@/lib/medals'
 import { getTitle, getNextTitle, TITLES } from '@/lib/titles'
@@ -132,6 +135,33 @@ export default async function ProfilePage() {
   const BIBLE_TOTAL_CHAPTERS = 1189
   const biblePct = Math.round((completedChapters.length / BIBLE_TOTAL_CHAPTERS) * 10000) / 100
 
+  // ── Iglesias y clanes ──
+  const { data: approvedChurchesRaw } = await supabase
+    .from('churches')
+    .select('id, name, abbreviation, icon_emoji, icon_url, description, status, requested_by, created_at')
+    .eq('status', 'approved')
+    .order('name', { ascending: true })
+
+  const approvedChurches = approvedChurchesRaw ?? []
+
+  let clansForMyChurch: Array<{
+    id: string; name: string; church_id: string | null;
+    shield_color: string | null; shield_bg: string | null; shield_icon: string | null;
+    created_by: string | null; is_predefined: boolean; created_at: string
+  }> = []
+  if (profile?.church_id) {
+    const { data: clansData } = await supabase
+      .from('clans')
+      .select('*')
+      .eq('church_id', profile.church_id)
+      .order('is_predefined', { ascending: false })
+      .order('name', { ascending: true })
+    clansForMyChurch = clansData ?? []
+  }
+
+  const myChurch = approvedChurches.find(c => c.id === profile?.church_id) ?? null
+  const myClan   = clansForMyChurch.find(c => c.id === profile?.clan_id) ?? null
+
   return (
     <div className="min-h-screen relative">
       <Stars count={70} />
@@ -165,6 +195,33 @@ export default async function ProfilePage() {
             <p className="text-cyan-300 text-sm mt-1">@{profile?.username}</p>
             <p className="text-gray-400 text-xs mt-1">{user.email}</p>
 
+            {/* Iglesia + clan */}
+            {(myChurch || myClan) && (
+              <div className="flex items-center justify-center flex-wrap gap-2 mt-3">
+                {myChurch && (
+                  <ChurchBadge
+                    icon_emoji={myChurch.icon_emoji}
+                    name={myChurch.name}
+                    abbreviation={myChurch.abbreviation}
+                    highlight={myChurch.abbreviation === 'MVDA'}
+                    showFullName
+                  />
+                )}
+                {myClan && (
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-purple-500/40 bg-purple-500/15 text-purple-100 text-xs">
+                    <ClanShield
+                      shield_bg={myClan.shield_bg}
+                      shield_color={myClan.shield_color}
+                      shield_icon={myClan.shield_icon}
+                      size="xs"
+                      glow={false}
+                    />
+                    {myClan.name}
+                  </span>
+                )}
+              </div>
+            )}
+
             {/* Title badge with rarity color */}
             <div className="flex justify-center mt-3">
               <span className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full border-2 text-sm font-bold ${title.bgColor} ${title.borderColor}`}>
@@ -187,6 +244,13 @@ export default async function ProfilePage() {
           <h3 className="font-bebas text-2xl text-white text-center leading-none">PERSONALIZAR PERFIL</h3>
 
           <BioEditor userId={user.id} initialBio={profile?.bio ?? ''} />
+
+          <ChurchSection
+            churches={approvedChurches}
+            clans={clansForMyChurch}
+            currentChurchId={profile?.church_id ?? null}
+            currentClanId={profile?.clan_id ?? null}
+          />
 
           <div className="border-t border-purple-800/40 pt-4">
             <AvatarSection

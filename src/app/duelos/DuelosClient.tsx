@@ -1,9 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Avatar from '@/components/Avatar'
+import ClanShield from '@/components/ClanShield'
+import ChurchBadge from '@/components/ChurchBadge'
 import { createClient } from '@/lib/supabase/client'
 import { getTitle, DUEL_CATEGORIES } from '@/lib/titles'
 import { createDuel, acceptDuel, rejectDuel, cancelDuel } from './actions'
@@ -33,8 +35,17 @@ interface DuelRow {
   challenger_finished: boolean
   opponent_finished: boolean
   created_at: string
+  is_inter_church?: boolean | null
   challenger: DuelProfile
   opponent: DuelProfile
+}
+
+interface ClanInfo {
+  id: string; name: string;
+  shield_color: string | null; shield_bg: string | null; shield_icon: string | null
+}
+interface ChurchInfo {
+  id: string; name: string; abbreviation: string | null; icon_emoji: string | null
 }
 
 interface Player {
@@ -49,6 +60,8 @@ interface Player {
   total_score: number
   wins: number
   losses: number
+  church_id?: string | null
+  clan_id?: string | null
 }
 
 interface Props {
@@ -60,6 +73,8 @@ interface Props {
   duels: DuelRow[]
   dailyCount: number
   challengedTodayIds: string[]
+  myChurchId: string | null
+  isAmbassador: boolean
 }
 
 type Modal = 'none' | 'pick-cats' | 'accept-cats'
@@ -68,10 +83,13 @@ type Modal = 'none' | 'pick-cats' | 'accept-cats'
 
 function PlayerCard({
   player, isMe, isActive, alreadyChallenged, limitReached, rank, onChallenge,
+  clan, church,
 }: {
   player: Player; isMe: boolean; isActive: boolean
   alreadyChallenged: boolean; limitReached: boolean; rank: number
   onChallenge: () => void
+  clan?: ClanInfo | null
+  church?: ChurchInfo | null
 }) {
   const title = getTitle(player.title)
   const total  = player.wins + player.losses
@@ -103,8 +121,30 @@ function PlayerCard({
             <div className="flex items-center gap-1.5 flex-wrap">
               <p className="text-white font-semibold text-sm truncate group-hover:text-cyan-300 transition-colors">{player.first_name} {player.last_name}</p>
               {isMe && <span className="text-[10px] bg-purple-700/60 text-purple-200 px-1.5 py-0.5 rounded-full font-medium">Tú</span>}
+              {clan && (
+                <span title={clan.name}>
+                  <ClanShield
+                    shield_bg={clan.shield_bg}
+                    shield_color={clan.shield_color}
+                    shield_icon={clan.shield_icon}
+                    size="xs"
+                    glow={false}
+                  />
+                </span>
+              )}
             </div>
-            <p className="text-gray-500 text-xs group-hover:text-cyan-400/80 transition-colors">@{player.username}</p>
+            <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+              <p className="text-gray-500 text-xs group-hover:text-cyan-400/80 transition-colors">@{player.username}</p>
+              {church && (
+                <ChurchBadge
+                  icon_emoji={church.icon_emoji}
+                  name={church.name}
+                  abbreviation={church.abbreviation}
+                  size="xs"
+                  highlight={church.abbreviation === 'MVDA'}
+                />
+              )}
+            </div>
             <span className={`inline-flex items-center gap-1 mt-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${title.bgColor} ${title.borderColor} ${title.color}`}>
               ⚔️ {title.label}
             </span>
@@ -255,7 +295,7 @@ function CategoryModal({
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function DuelosClient({ userId, profile, duels, dailyCount, challengedTodayIds }: Props) {
+export default function DuelosClient({ userId, profile, duels, dailyCount, challengedTodayIds, myChurchId, isAmbassador }: Props) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const challengeQueryId = searchParams.get('challenge')
@@ -264,11 +304,14 @@ export default function DuelosClient({ userId, profile, duels, dailyCount, chall
   const [acceptingDuel, setAcceptingDuel] = useState<DuelRow | null>(null)
   const [globalErr, setGlobalErr]       = useState<string | null>(null)
   const [autoChallengeHandled, setAutoChallengeHandled] = useState(false)
+  const [scope, setScope]               = useState<'all' | 'inter'>('all')
 
   // ── Player list (fetched client-side) ──────────────────────────────────────
   const [players, setPlayers]       = useState<Player[]>([])
   const [loadingPlayers, setLoadingPlayers] = useState(true)
   const [activeTodayIds, setActiveTodayIds] = useState<Set<string>>(new Set())
+  const [clansById,   setClansById]   = useState<Map<string, ClanInfo>>(new Map())
+  const [churchesById, setChurchesById] = useState<Map<string, ChurchInfo>>(new Map())
 
   useEffect(() => {
     const supabase = createClient()
@@ -278,7 +321,7 @@ export default function DuelosClient({ userId, profile, duels, dailyCount, chall
 
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, username, first_name, last_name, avatar_url, frame, avatar_bg, title, total_score, wins, losses')
+        .select('id, username, first_name, last_name, avatar_url, frame, avatar_bg, title, total_score, wins, losses, church_id, clan_id')
         .order('total_score', { ascending: false })
 
       if (error) {
@@ -288,8 +331,28 @@ export default function DuelosClient({ userId, profile, duels, dailyCount, chall
       }
 
       console.log('Players fetched:', data?.length, data)
-      setPlayers((data as Player[]) ?? [])
+      const list = (data as Player[]) ?? []
+      setPlayers(list)
       setLoadingPlayers(false)
+
+      // Also fetch the clan + church info referenced by the player list
+      const clanIds   = Array.from(new Set(list.map(p => p.clan_id).filter(Boolean) as string[]))
+      const churchIds = Array.from(new Set(list.map(p => p.church_id).filter(Boolean) as string[]))
+
+      if (clanIds.length > 0) {
+        const { data: clans } = await supabase
+          .from('clans')
+          .select('id, name, shield_color, shield_bg, shield_icon')
+          .in('id', clanIds)
+        setClansById(new Map((clans ?? []).map(c => [c.id, c as ClanInfo])))
+      }
+      if (churchIds.length > 0) {
+        const { data: churches } = await supabase
+          .from('churches')
+          .select('id, name, abbreviation, icon_emoji')
+          .in('id', churchIds)
+        setChurchesById(new Map((churches ?? []).map(c => [c.id, c as ChurchInfo])))
+      }
     }
 
     async function fetchActiveToday() {
@@ -357,10 +420,17 @@ export default function DuelosClient({ userId, profile, duels, dailyCount, chall
 
   const challengedSet = new Set(challengedTodayIds)
 
-  const pendingReceived = duels.filter(d => d.status === 'pending' && d.opponent_id === userId)
-  const pendingSent     = duels.filter(d => d.status === 'pending' && d.challenger_id === userId)
-  const active          = duels.filter(d => d.status === 'active')
-  const finished        = duels.filter(d => d.status === 'finished').slice(0, 5)
+  const visibleDuels = scope === 'inter' ? duels.filter(d => d.is_inter_church === true) : duels
+  const pendingReceived = visibleDuels.filter(d => d.status === 'pending' && d.opponent_id === userId)
+  const pendingSent     = visibleDuels.filter(d => d.status === 'pending' && d.challenger_id === userId)
+  const active          = visibleDuels.filter(d => d.status === 'active')
+  const finished        = visibleDuels.filter(d => d.status === 'finished').slice(0, 5)
+
+  const visiblePlayers = useMemo(() => {
+    if (scope !== 'inter') return players
+    if (!myChurchId) return [] // user has no church; show nothing in inter tab
+    return players.filter(p => p.id === userId || (p.church_id && p.church_id !== myChurchId))
+  }, [players, scope, myChurchId, userId])
 
   function openChallenge(player: Player) {
     if (dailyCount >= 3) return
@@ -411,9 +481,17 @@ export default function DuelosClient({ userId, profile, duels, dailyCount, chall
     <div className="min-h-screen bg-gradient-to-br from-[#0f0f1a] via-[#1a1a2e] to-[#0d1b2a]">
 
       <header className="px-4 pt-8 pb-4 max-w-lg mx-auto flex items-center justify-between">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Swords size={22} className="text-purple-400" />
           <h1 className="text-xl font-bold text-white">Duelos PVP</h1>
+          {isAmbassador && (
+            <span
+              title="Embajador: el jugador de tu iglesia con más victorias inter-iglesias"
+              className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-amber-500/20 border border-amber-400/60 text-amber-200 px-2 py-0.5 rounded-full shadow-[0_0_10px_rgba(245,158,11,0.3)]"
+            >
+              🎖️ Embajador
+            </span>
+          )}
         </div>
         <span className={`text-xs px-3 py-1.5 rounded-full border font-medium ${
           dailyCount >= 3
@@ -425,6 +503,37 @@ export default function DuelosClient({ userId, profile, duels, dailyCount, chall
       </header>
 
       <div className="px-4 max-w-lg mx-auto space-y-4 pb-8">
+
+        {/* Scope tabs */}
+        <div className="flex gap-1 p-1 bg-[#0f0a2e]/80 rounded-xl border border-purple-700/40">
+          <button
+            onClick={() => setScope('all')}
+            className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
+              scope === 'all'
+                ? 'bg-gradient-to-r from-purple-600 to-purple-500 text-white shadow-[0_0_12px_rgba(124,58,237,0.5)]'
+                : 'text-gray-500 hover:text-white'
+            }`}
+          >
+            Todos
+          </button>
+          <button
+            onClick={() => setScope('inter')}
+            className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
+              scope === 'inter'
+                ? 'bg-gradient-to-r from-emerald-600 to-cyan-600 text-white shadow-[0_0_12px_rgba(16,185,129,0.5)]'
+                : 'text-gray-500 hover:text-white'
+            }`}
+          >
+            ⚔️ Inter-Iglesias
+          </button>
+        </div>
+
+        {scope === 'inter' && !myChurchId && (
+          <div className="bg-amber-900/20 border border-amber-700/40 text-amber-200 text-xs p-3 rounded-xl">
+            Para participar de duelos inter-iglesias, elegí tu iglesia en{' '}
+            <Link href="/profile" className="underline">tu perfil</Link>.
+          </div>
+        )}
 
         {/* My stats */}
         {profile && (
@@ -505,7 +614,14 @@ export default function DuelosClient({ userId, profile, duels, dailyCount, chall
                     className="w-full bg-purple-900/30 border border-purple-700/40 rounded-2xl p-4 flex items-center gap-3 hover:border-purple-500/60 transition-all disabled:opacity-60 text-left">
                     <Avatar avatarUrl={opp.avatar_url} firstName={opp.first_name} size="sm" frame={opp.frame} bg={opp.avatar_bg} />
                     <div className="flex-1">
-                      <p className="text-white text-sm font-medium">vs @{opp.username}</p>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <p className="text-white text-sm font-medium">vs @{opp.username}</p>
+                        {duel.is_inter_church && (
+                          <span className="text-[9px] font-bold uppercase tracking-wider bg-emerald-500/20 border border-emerald-400/40 text-emerald-200 px-1.5 py-0.5 rounded-full">
+                            ⚔️ Inter
+                          </span>
+                        )}
+                      </div>
                       <p className="text-purple-400 text-xs">{done ? 'Esperando rival...' : '¡Jugá ahora!'}</p>
                     </div>
                     {done ? <CheckCircle2 size={16} className="text-green-400" /> : <ChevronRight size={16} className="text-purple-400" />}
@@ -530,7 +646,14 @@ export default function DuelosClient({ userId, profile, duels, dailyCount, chall
                     className="w-full bg-gray-800/40 border border-gray-700/40 rounded-2xl p-3 flex items-center gap-3 hover:border-gray-600 transition-all text-left">
                     <Avatar avatarUrl={opp.avatar_url} firstName={opp.first_name} size="sm" frame={opp.frame} bg={opp.avatar_bg} />
                     <div className="flex-1">
-                      <p className="text-white text-sm font-medium">vs @{opp.username}</p>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <p className="text-white text-sm font-medium">vs @{opp.username}</p>
+                        {duel.is_inter_church && (
+                          <span className="text-[9px] font-bold uppercase tracking-wider bg-emerald-500/20 border border-emerald-400/40 text-emerald-200 px-1.5 py-0.5 rounded-full">
+                            ⚔️ Inter
+                          </span>
+                        )}
+                      </div>
                       <p className={`text-xs font-semibold ${isWinner ? 'text-green-400' : isDraw ? 'text-yellow-400' : 'text-red-400'}`}>
                         {isWinner ? '✓ Victoria' : isDraw ? '= Empate' : '✗ Derrota'} · {myScore(duel)}/{myScore(duel) + opScore(duel)} correctas
                       </p>
@@ -557,15 +680,18 @@ export default function DuelosClient({ userId, profile, duels, dailyCount, chall
             <div className="flex items-center justify-center py-14">
               <Loader2 size={28} className="text-purple-500 animate-spin" />
             </div>
-          ) : players.length === 0 ? (
+          ) : visiblePlayers.length === 0 ? (
             <div className="text-center py-12">
               <Trophy size={36} className="text-gray-700 mx-auto mb-2" />
-              <p className="text-gray-600 text-sm">No se encontraron jugadores</p>
-              <p className="text-gray-700 text-xs mt-1">Revisá la consola del navegador para ver el error</p>
+              <p className="text-gray-600 text-sm">
+                {scope === 'inter'
+                  ? 'No hay jugadores de otras iglesias todavía'
+                  : 'No se encontraron jugadores'}
+              </p>
             </div>
           ) : (
             <div className="space-y-2.5">
-              {players.map((player, i) => (
+              {visiblePlayers.map((player, i) => (
                 <PlayerCard
                   key={player.id}
                   player={player}
@@ -575,6 +701,8 @@ export default function DuelosClient({ userId, profile, duels, dailyCount, chall
                   limitReached={dailyCount >= 3}
                   rank={i + 1}
                   onChallenge={() => openChallenge(player)}
+                  clan={player.clan_id ? clansById.get(player.clan_id) : null}
+                  church={player.church_id ? churchesById.get(player.church_id) : null}
                 />
               ))}
             </div>

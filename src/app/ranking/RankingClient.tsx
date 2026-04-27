@@ -2,10 +2,12 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Trophy, Star, Medal } from 'lucide-react'
+import { Trophy, Star, Medal, Users } from 'lucide-react'
 import Avatar from '@/components/Avatar'
+import ClanShield from '@/components/ClanShield'
+import ChurchBadge from '@/components/ChurchBadge'
 import { getMedal } from '@/lib/medals'
-import type { WeeklyProfile } from '@/lib/types'
+import type { WeeklyProfile, ChurchRankingRow } from '@/lib/types'
 
 interface GlobalProfile {
   id: string
@@ -16,11 +18,19 @@ interface GlobalProfile {
   avatar_url: string | null
   frame: string | null
   avatar_bg: string | null
+  clan_id?: string | null
+  church_id?: string | null
 }
+
+interface ClanLookup { id: string; name: string; shield_color: string | null; shield_bg: string | null; shield_icon: string | null }
+interface ChurchLookup { id: string; name: string; abbreviation: string | null; icon_emoji: string | null }
 
 interface Props {
   globalTop10: GlobalProfile[]
   weeklyAll: WeeklyProfile[]
+  churchRanking: ChurchRankingRow[]
+  clansLookup: ClanLookup[]
+  churchesLookup: ChurchLookup[]
   userId: string | null
   userGlobalRank: number
   userGlobalProfile: GlobalProfile | null
@@ -41,11 +51,17 @@ function RankIcon({ rank }: { rank: number }) {
 export default function RankingClient({
   globalTop10,
   weeklyAll,
+  churchRanking,
+  clansLookup,
+  churchesLookup,
   userId,
   userGlobalRank,
   userGlobalProfile,
 }: Props) {
-  const [tab, setTab] = useState<'global' | 'semanal'>('global')
+  const [tab, setTab] = useState<'global' | 'semanal' | 'iglesias'>('global')
+
+  const clanById   = new Map(clansLookup.map(c => [c.id, c]))
+  const churchById = new Map(churchesLookup.map(c => [c.id, c]))
 
   const weeklyTop10 = weeklyAll.slice(0, 10)
   const weeklyChampionId = weeklyAll.find(p => p.weekly_score > 0)?.id ?? null
@@ -61,7 +77,7 @@ export default function RankingClient({
       <div className="flex gap-1 p-1 bg-[#0f0a2e]/80 rounded-xl border border-purple-700/40 mb-4">
         <button
           onClick={() => setTab('global')}
-          className={`flex-1 py-2 rounded-lg text-sm font-bold uppercase tracking-wider transition-all ${
+          className={`flex-1 py-2 rounded-lg text-xs sm:text-sm font-bold uppercase tracking-wider transition-all ${
             tab === 'global'
               ? 'bg-gradient-to-r from-purple-600 to-purple-500 text-white shadow-[0_0_16px_rgba(124,58,237,0.5)]'
               : 'text-gray-500 hover:text-white'
@@ -71,13 +87,23 @@ export default function RankingClient({
         </button>
         <button
           onClick={() => setTab('semanal')}
-          className={`flex-1 py-2 rounded-lg text-sm font-bold uppercase tracking-wider transition-all ${
+          className={`flex-1 py-2 rounded-lg text-xs sm:text-sm font-bold uppercase tracking-wider transition-all ${
             tab === 'semanal'
               ? 'bg-gradient-to-r from-purple-600 to-purple-500 text-white shadow-[0_0_16px_rgba(124,58,237,0.5)]'
               : 'text-gray-500 hover:text-white'
           }`}
         >
           Semana
+        </button>
+        <button
+          onClick={() => setTab('iglesias')}
+          className={`flex-1 py-2 rounded-lg text-xs sm:text-sm font-bold uppercase tracking-wider transition-all ${
+            tab === 'iglesias'
+              ? 'bg-gradient-to-r from-emerald-600 to-cyan-600 text-white shadow-[0_0_16px_rgba(16,185,129,0.5)]'
+              : 'text-gray-500 hover:text-white'
+          }`}
+        >
+          Iglesias
         </button>
       </div>
 
@@ -95,6 +121,8 @@ export default function RankingClient({
           <div className="space-y-2">
             {globalTop10.map((p, idx) => {
               const isMe = p.id === userId
+              const clan   = p.clan_id   ? clanById.get(p.clan_id)     : null
+              const church = p.church_id ? churchById.get(p.church_id) : null
               return (
                 <div
                   key={p.id}
@@ -114,9 +142,31 @@ export default function RankingClient({
                         {p.first_name} {p.last_name}
                         {isMe && <span className="text-purple-400 text-xs ml-2">(vos)</span>}
                       </p>
-                      <p className="text-gray-400 text-xs group-hover:text-cyan-400/80 transition-colors">@{p.username}</p>
+                      <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                        <span className="text-gray-400 text-xs group-hover:text-cyan-400/80 transition-colors">@{p.username}</span>
+                        {church && (
+                          <ChurchBadge
+                            icon_emoji={church.icon_emoji}
+                            name={church.name}
+                            abbreviation={church.abbreviation}
+                            size="xs"
+                            highlight={church.abbreviation === 'MVDA'}
+                          />
+                        )}
+                      </div>
                     </div>
                   </Link>
+                  {clan && (
+                    <span title={clan.name} className="flex-shrink-0">
+                      <ClanShield
+                        shield_bg={clan.shield_bg}
+                        shield_color={clan.shield_color}
+                        shield_icon={clan.shield_icon}
+                        size="xs"
+                        glow={false}
+                      />
+                    </span>
+                  )}
                   <div className="flex items-center gap-1 flex-shrink-0">
                     <Star size={14} className="text-yellow-400" />
                     <span className="text-yellow-300 font-bold">{p.total_score}</span>
@@ -213,7 +263,54 @@ export default function RankingClient({
         </>
       )}
 
-      {!userId && (
+      {/* ── IGLESIAS ── */}
+      {tab === 'iglesias' && (
+        <>
+          {churchRanking.length === 0 ? (
+            <div className="text-center py-12">
+              <Users size={32} className="text-gray-600 mx-auto mb-2" />
+              <p className="text-gray-400 text-sm">Aún no hay iglesias registradas</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {churchRanking.map((c, idx) => {
+                const isMVDA = c.abbreviation === 'MVDA'
+                return (
+                  <div
+                    key={c.id}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 ${
+                      isMVDA
+                        ? 'bg-gradient-to-r from-amber-900/30 to-yellow-900/20 border-amber-400/60 shadow-[0_0_20px_rgba(245,158,11,0.3)]'
+                        : 'bg-[#0f0a2e]/70 border-purple-800/30'
+                    }`}
+                  >
+                    <div className="w-8 flex items-center justify-center flex-shrink-0">
+                      <RankIcon rank={idx + 1} />
+                    </div>
+                    <span className="text-3xl flex-shrink-0">{c.icon_emoji ?? '⛪'}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className={`font-semibold truncate ${isMVDA ? 'text-amber-200' : 'text-white'}`}>
+                        {c.name}
+                        {c.abbreviation && <span className="text-gray-400 text-xs ml-2">({c.abbreviation})</span>}
+                      </p>
+                      <p className="text-gray-400 text-xs">
+                        {c.member_count} {c.member_count === 1 ? 'miembro' : 'miembros'}
+                        {isMVDA && <span className="text-amber-400 ml-2">🦅 Casa Águila</span>}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <Star size={14} className="text-yellow-400" />
+                      <span className="text-yellow-300 font-bold">{c.total_score}</span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </>
+      )}
+
+      {!userId && tab !== 'iglesias' && (
         <div className="text-center py-4 bg-purple-900/20 rounded-xl border border-purple-700/30">
           <p className="text-gray-400 text-sm">
             <a href="/login" className="text-purple-400 hover:text-purple-300 font-medium">Ingresá</a> para ver tu posición

@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { BookOpen, Megaphone, Calendar, BarChart3, Users, Scroll, Bell } from 'lucide-react'
+import { BookOpen, Megaphone, Calendar, BarChart3, Users, Scroll, Bell, Church as ChurchIcon } from 'lucide-react'
 import Logo from '@/components/Logo'
 
 export default async function AdminPage() {
@@ -29,6 +29,8 @@ export default async function AdminPage() {
     { count: totalEvents },
     { count: totalChapters },
     { count: totalNotifications },
+    { count: totalChurches },
+    { count: pendingChurches },
   ] = await Promise.all([
     supabase.from('questions').select('*', { count: 'exact', head: true }),
     supabase.from('questions').select('*', { count: 'exact', head: true }).eq('available_date', today),
@@ -37,6 +39,8 @@ export default async function AdminPage() {
     supabase.from('events').select('*', { count: 'exact', head: true }),
     supabase.from('story_chapters').select('*', { count: 'exact', head: true }),
     supabase.from('notifications').select('*', { count: 'exact', head: true }),
+    supabase.from('churches').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
+    supabase.from('churches').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
   ])
 
   const sections = [
@@ -74,6 +78,14 @@ export default async function AdminPage() {
       label: 'Notificaciones',
       color: 'purple',
       stat: `${totalNotifications ?? 0} notificaciones`,
+    },
+    {
+      href: '/admin/iglesias',
+      icon: ChurchIcon,
+      label: 'Iglesias y Clanes',
+      color: 'green',
+      stat: `${totalChurches ?? 0} aprobadas${pendingChurches ? ` · ${pendingChurches} pendientes` : ''}`,
+      badge: pendingChurches ?? 0,
     },
   ]
 
@@ -113,37 +125,46 @@ export default async function AdminPage() {
 
         {/* Sections */}
         <div className="space-y-3">
-          {sections.map(({ href, icon: Icon, label, color, stat }) => (
-            <Link
-              key={href}
-              href={href}
-              className={`flex items-center gap-4 p-4 rounded-2xl border transition-all hover:scale-[1.01] ${
-                color === 'purple' ? 'bg-purple-900/20 border-purple-700/40 hover:border-purple-500/60' :
-                color === 'blue'   ? 'bg-blue-900/20 border-blue-700/40 hover:border-blue-500/60'   :
-                color === 'yellow' ? 'bg-yellow-900/20 border-yellow-700/40 hover:border-yellow-500/60' :
-                'bg-green-900/20 border-green-700/40 hover:border-green-500/60'
-              }`}
-            >
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                color === 'purple' ? 'bg-purple-600/30' :
-                color === 'blue'   ? 'bg-blue-600/30'   :
-                color === 'yellow' ? 'bg-yellow-600/30' :
-                'bg-green-600/30'
-              }`}>
-                <Icon size={22} className={
-                  color === 'purple' ? 'text-purple-400' :
-                  color === 'blue'   ? 'text-blue-400'   :
-                  color === 'yellow' ? 'text-yellow-400' :
-                  'text-green-400'
-                } />
-              </div>
-              <div className="flex-1">
-                <p className="font-semibold text-white">Gestionar {label}</p>
-                <p className="text-xs text-gray-400">{stat}</p>
-              </div>
-              <span className="text-gray-500 text-lg">›</span>
-            </Link>
-          ))}
+          {sections.map((s) => {
+            const { href, icon: Icon, label, color, stat } = s
+            const badge = (s as { badge?: number }).badge ?? 0
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={`relative flex items-center gap-4 p-4 rounded-2xl border transition-all hover:scale-[1.01] ${
+                  color === 'purple' ? 'bg-purple-900/20 border-purple-700/40 hover:border-purple-500/60' :
+                  color === 'blue'   ? 'bg-blue-900/20 border-blue-700/40 hover:border-blue-500/60'   :
+                  color === 'yellow' ? 'bg-yellow-900/20 border-yellow-700/40 hover:border-yellow-500/60' :
+                  'bg-green-900/20 border-green-700/40 hover:border-green-500/60'
+                }`}
+              >
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                  color === 'purple' ? 'bg-purple-600/30' :
+                  color === 'blue'   ? 'bg-blue-600/30'   :
+                  color === 'yellow' ? 'bg-yellow-600/30' :
+                  'bg-green-600/30'
+                }`}>
+                  <Icon size={22} className={
+                    color === 'purple' ? 'text-purple-400' :
+                    color === 'blue'   ? 'text-blue-400'   :
+                    color === 'yellow' ? 'text-yellow-400' :
+                    'text-green-400'
+                  } />
+                </div>
+                <div className="flex-1">
+                  <p className="font-semibold text-white">Gestionar {label}</p>
+                  <p className="text-xs text-gray-400">{stat}</p>
+                </div>
+                {badge > 0 && (
+                  <span className="absolute top-2 right-2 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.5)]">
+                    {badge}
+                  </span>
+                )}
+                <span className="text-gray-500 text-lg">›</span>
+              </Link>
+            )
+          })}
         </div>
 
         <Link href="/" className="block text-center text-gray-500 text-sm hover:text-gray-300 transition-colors">

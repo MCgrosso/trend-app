@@ -19,6 +19,29 @@ export async function searchUserByUsername(username: string) {
   return { error: null, data }
 }
 
+// Like searchUserByUsername but restricted to players from a *different* church
+// (and excludes anyone with no church assigned).
+export async function searchInterChurchOpponent(username: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'No autenticado', data: null }
+
+  const { data: me } = await supabase.from('profiles').select('church_id').eq('id', user.id).single()
+  if (!me?.church_id) return { error: 'Elegí tu iglesia en /profile primero', data: null }
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, username, first_name, last_name, avatar_url, frame, wins, title, church_id')
+    .ilike('username', username.trim())
+    .neq('id', user.id)
+    .neq('church_id', me.church_id)
+    .not('church_id', 'is', null)
+    .limit(5)
+
+  if (error) return { error: error.message, data: null }
+  return { error: null, data }
+}
+
 export async function createDuel(opponentId: string, challengerCategories: string[]) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -31,6 +54,15 @@ export async function createDuel(opponentId: string, challengerCategories: strin
   // Prevent self-duel and duplicate pending
   if (opponentId === user.id) return { error: 'No podés desafiarte a vos mismo', duelId: null }
 
+  // Determine inter-church flag: true only when both have a church and they differ
+  const { data: bothProfiles } = await supabase
+    .from('profiles')
+    .select('id, church_id')
+    .in('id', [user.id, opponentId])
+  const myChurch = bothProfiles?.find(p => p.id === user.id)?.church_id ?? null
+  const opChurch = bothProfiles?.find(p => p.id === opponentId)?.church_id ?? null
+  const isInterChurch = !!myChurch && !!opChurch && myChurch !== opChurch
+
   const { data: duel, error } = await supabase
     .from('duels')
     .insert({
@@ -38,6 +70,7 @@ export async function createDuel(opponentId: string, challengerCategories: strin
       opponent_id: opponentId,
       status: 'pending',
       categories: challengerCategories,
+      is_inter_church: isInterChurch,
     })
     .select('id')
     .single()
@@ -46,7 +79,7 @@ export async function createDuel(opponentId: string, challengerCategories: strin
     console.log('[createDuel] insert error:', error)
     return { error: error.message, duelId: null }
   }
-  console.log('[createDuel] inserted duel', duel.id, 'challenger=', user.id, 'opponent=', opponentId)
+  console.log('[createDuel] inserted duel', duel.id, 'challenger=', user.id, 'opponent=', opponentId, 'interChurch=', isInterChurch)
   return { error: null, duelId: duel.id }
 }
 

@@ -17,6 +17,51 @@ export interface Profile {
   best_streak: number
   title: string | null
   bio: string | null
+  avatar_bg: string | null
+  church_id: string | null
+  clan_id: string | null
+  inter_church_wins: number
+}
+
+export interface Church {
+  id: string
+  name: string
+  abbreviation: string | null
+  icon_emoji: string | null
+  icon_url: string | null
+  description: string | null
+  status: 'pending' | 'approved' | 'rejected'
+  requested_by: string | null
+  created_at: string
+}
+
+export interface Clan {
+  id: string
+  name: string
+  church_id: string | null
+  shield_color: string | null
+  shield_bg: string | null
+  shield_icon: string | null
+  created_by: string | null
+  is_predefined: boolean
+  created_at: string
+}
+
+export interface ChurchRankingRow {
+  id: string
+  name: string
+  abbreviation: string | null
+  icon_emoji: string | null
+  member_count: number
+  total_score: number
+}
+
+export interface ChurchAmbassadorRow {
+  church_id: string
+  user_id: string
+  username: string
+  first_name: string
+  inter_church_wins: number
 }
 
 export interface Duel {
@@ -32,6 +77,8 @@ export interface Duel {
   opponent_finished: boolean
   created_at: string
   finished_at: string | null
+  is_inter_church?: boolean
+  result_applied?: boolean
 }
 
 export interface DuelQuestion {

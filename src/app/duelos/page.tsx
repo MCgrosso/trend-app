@@ -16,10 +16,11 @@ export default async function DuelosPage() {
     { data: duels },
     { data: dailyCountRaw },
     { data: challengedTodayRaw },
+    { data: ambassadors },
   ] = await Promise.all([
     supabase
       .from('profiles')
-      .select('id, username, first_name, avatar_url, frame, avatar_bg, wins, losses, draws, win_streak, best_streak, title')
+      .select('id, username, first_name, avatar_url, frame, avatar_bg, wins, losses, draws, win_streak, best_streak, title, church_id, inter_church_wins')
       .eq('id', user.id)
       .single(),
 
@@ -42,10 +43,16 @@ export default async function DuelosPage() {
       .eq('challenger_id', user.id)
       .gte('created_at', `${todayStr}T00:00:00.000Z`)
       .not('status', 'in', '(cancelled,rejected)'),
+
+    supabase.rpc('get_church_ambassadors'),
   ])
 
   const challengedTodayIds = (challengedTodayRaw ?? []).map(
     (d: { opponent_id: string }) => d.opponent_id
+  )
+
+  const isAmbassador = !!ambassadors?.some(
+    (a: { user_id: string }) => a.user_id === user.id
   )
 
   return (
@@ -55,6 +62,8 @@ export default async function DuelosPage() {
       duels={duels ?? []}
       dailyCount={dailyCountRaw ?? 0}
       challengedTodayIds={challengedTodayIds}
+      myChurchId={profile?.church_id ?? null}
+      isAmbassador={isAmbassador}
     />
   )
 }
