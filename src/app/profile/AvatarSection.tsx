@@ -96,17 +96,20 @@ export default function AvatarSection({
             <div className="flex gap-4 justify-center flex-wrap">
               {SPECIAL_AVATARS.map(a => {
                 const unlocked = unlockedSpecial.includes(a.id)
+                const lockedLabel = a.chapterUnlock
+                  ? `Completá ${a.chapterUnlock.book} ${a.chapterUnlock.chapter}`
+                  : a.description
                 return (
                   <button
                     key={a.id}
                     type="button"
                     disabled={!unlocked}
                     onClick={() => unlocked && setSelectedAvatar(a.id)}
-                    title={unlocked ? a.label : `Bloqueado — ${a.description}`}
+                    title={unlocked ? a.label : `Bloqueado — ${lockedLabel}`}
                     className="flex flex-col items-center gap-1.5 focus:outline-none"
                   >
                     <div
-                      className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl transition-all duration-150 ${
+                      className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl transition-all duration-150 overflow-hidden ${
                         !unlocked
                           ? 'opacity-30 grayscale ring-2 ring-white/10'
                           : selectedAvatar === a.id
@@ -115,12 +118,19 @@ export default function AvatarSection({
                       }`}
                       style={{ backgroundColor: unlocked ? a.bg : '#374151' }}
                     >
-                      {unlocked ? a.emoji : '🔒'}
+                      {!unlocked ? (
+                        <span>🔒</span>
+                      ) : a.image ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={a.image} alt={a.label} className="w-full h-full object-cover" />
+                      ) : (
+                        <span>{a.emoji}</span>
+                      )}
                     </div>
-                    <span className={`text-[11px] font-medium max-w-[60px] text-center leading-tight ${
+                    <span className={`text-[11px] font-medium max-w-[72px] text-center leading-tight ${
                       !unlocked ? 'text-gray-600' : selectedAvatar === a.id ? 'text-white' : 'text-gray-400'
                     }`}>
-                      {unlocked ? a.label : a.description}
+                      {unlocked ? a.label : lockedLabel}
                     </span>
                   </button>
                 )

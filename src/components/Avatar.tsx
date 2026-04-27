@@ -32,6 +32,23 @@ export default function Avatar({
   const useCustomBg = Boolean(bgClass)
 
   if (avatar) {
+    // PNG-based avatar (e.g. story-mode unlocks): render circular image
+    if (avatar.image) {
+      return (
+        <div
+          className={`${s.outer} relative rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden ${bgClass} ${frameClass} ${className}`}
+          style={useCustomBg ? undefined : { backgroundColor: avatar.bg }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={avatar.image}
+            alt={avatar.label}
+            className="relative z-10 w-full h-full object-cover"
+          />
+        </div>
+      )
+    }
+
     return (
       <div
         className={`${s.outer} relative rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden ${bgClass} ${frameClass} ${className}`}

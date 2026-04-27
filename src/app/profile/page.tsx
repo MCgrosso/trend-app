@@ -6,6 +6,7 @@ import LogoutButton from './LogoutButton'
 import AvatarSection from './AvatarSection'
 import BioEditor from './BioEditor'
 import ChurchSection from './ChurchSection'
+import { SPECIAL_AVATARS } from '@/lib/avatars'
 import { Star, Flame, Calendar, Shield, Swords, Trophy, Scroll, BookOpen } from 'lucide-react'
 import Logo from '@/components/Logo'
 import Stars from '@/components/Stars'
@@ -121,6 +122,16 @@ export default async function ProfilePage() {
     const total    = qCountByChapter.get(c.id) ?? 0
     return total > 0 && answered >= total
   })
+
+  // Story-chapter avatar unlocks — retroactive: scans story_answers above and
+  // unlocks any avatar whose chapterUnlock matches a completed chapter.
+  for (const sa of SPECIAL_AVATARS) {
+    if (!sa.chapterUnlock) continue
+    const done = completedChapters.some(
+      c => c.book === sa.chapterUnlock!.book && c.chapter === sa.chapterUnlock!.chapter
+    )
+    if (done) unlockedSpecial.push(sa.id)
+  }
 
   // Fondos de avatar desbloqueados
   const unlockedBgs = computeUnlockedBgs({

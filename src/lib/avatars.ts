@@ -1,27 +1,62 @@
-export const AVATARS: Record<string, { emoji: string; bg: string; label: string }> = {
+// Avatar entry. `image` is optional — when present it overrides the emoji
+// rendering with a circular PNG (used for special unlock-by-story-chapter
+// avatars). `chapterUnlock` describes which story chapter completes the unlock,
+// so the profile page can compute it from the story_answers table.
+export type Avatar = {
+  emoji: string
+  bg: string
+  label: string
+  image?: string
+  chapterUnlock?: { book: string; chapter: number }
+}
+
+export const AVATARS: Record<string, Avatar> = {
   leon:     { emoji: '🦁', bg: '#f97316', label: 'León' },
   aguila:   { emoji: '🦅', bg: '#3b82f6', label: 'Águila' },
   ballena:  { emoji: '🐋', bg: '#06b6d4', label: 'Ballena' },
   estrella: { emoji: '🌟', bg: '#a855f7', label: 'Estrella' },
   fuego:    { emoji: '🔥', bg: '#ef4444', label: 'Fuego' },
-  // Avatares especiales desbloqueables
+  // Avatares especiales desbloqueables por progreso general
   guerrero: { emoji: '⚔️', bg: '#d97706', label: 'Guerrero de la Fe' },
   profeta:  { emoji: '🔮', bg: '#7c3aed', label: 'Profeta' },
   apostol:  { emoji: '✝️', bg: '#1d4ed8', label: 'Apóstol' },
   campeon:  { emoji: '🏆', bg: '#ca8a04', label: 'Campeón de Duelos' },
+  // Avatares especiales desbloqueables por completar capítulos del Modo Historia
+  avatar_moises:   { emoji: '📜', bg: '#92400e', label: 'Moisés',   image: '/avatar_moises.png',   chapterUnlock: { book: 'Génesis', chapter: 1  } },
+  avatar_adan:     { emoji: '🌿', bg: '#15803d', label: 'Adán',     image: '/avatar_adan.png',     chapterUnlock: { book: 'Génesis', chapter: 2  } },
+  avatar_eva:      { emoji: '🍎', bg: '#be123c', label: 'Eva',      image: '/avatar_eva.png',      chapterUnlock: { book: 'Génesis', chapter: 3  } },
+  avatar_abel:     { emoji: '🐑', bg: '#475569', label: 'Abel',     image: '/avatar_abel.png',     chapterUnlock: { book: 'Génesis', chapter: 4  } },
+  avatar_abraham:  { emoji: '⭐', bg: '#7e22ce', label: 'Abraham',  image: '/avatar_abraham.png',  chapterUnlock: { book: 'Génesis', chapter: 12 } },
 }
 
-const SPECIAL_IDS = new Set(['guerrero', 'profeta', 'apostol', 'campeon'])
+const SPECIAL_IDS = new Set([
+  'guerrero', 'profeta', 'apostol', 'campeon',
+  'avatar_moises', 'avatar_adan', 'avatar_eva', 'avatar_abel', 'avatar_abraham',
+])
 
 export const AVATAR_LIST = Object.entries(AVATARS)
   .filter(([id]) => !SPECIAL_IDS.has(id))
   .map(([id, v]) => ({ id, ...v }))
 
-export const SPECIAL_AVATARS: {
-  id: string; emoji: string; bg: string; label: string; description: string
-}[] = [
+export type SpecialAvatar = {
+  id: string
+  emoji: string
+  bg: string
+  label: string
+  description: string
+  image?: string
+  chapterUnlock?: { book: string; chapter: number }
+}
+
+export const SPECIAL_AVATARS: SpecialAvatar[] = [
   { id: 'guerrero', emoji: '⚔️', bg: '#d97706', label: 'Guerrero de la Fe',   description: '20 respuestas correctas en total' },
   { id: 'profeta',  emoji: '🔮', bg: '#7c3aed', label: 'Profeta',              description: 'Racha de 5 días seguidos'        },
   { id: 'apostol',  emoji: '✝️', bg: '#1d4ed8', label: 'Apóstol',              description: '200 puntos totales'              },
   { id: 'campeon',  emoji: '🏆', bg: '#ca8a04', label: 'Campeón de Duelos',    description: 'Racha de 3 victorias en duelos'  },
+  // Modo Historia
+  { id: 'avatar_moises',  emoji: '📜', bg: '#92400e', label: 'Moisés',  description: 'Completá Génesis 1',  image: '/avatar_moises.png',  chapterUnlock: { book: 'Génesis', chapter: 1  } },
+  { id: 'avatar_adan',    emoji: '🌿', bg: '#15803d', label: 'Adán',    description: 'Completá Génesis 2',  image: '/avatar_adan.png',    chapterUnlock: { book: 'Génesis', chapter: 2  } },
+  { id: 'avatar_eva',     emoji: '🍎', bg: '#be123c', label: 'Eva',     description: 'Completá Génesis 3',  image: '/avatar_eva.png',     chapterUnlock: { book: 'Génesis', chapter: 3  } },
+  { id: 'avatar_abel',    emoji: '🐑', bg: '#475569', label: 'Abel',    description: 'Completá Génesis 4',  image: '/avatar_abel.png',    chapterUnlock: { book: 'Génesis', chapter: 4  } },
+  { id: 'avatar_abraham', emoji: '⭐', bg: '#7e22ce', label: 'Abraham', description: 'Completá Génesis 12', image: '/avatar_abraham.png', chapterUnlock: { book: 'Génesis', chapter: 12 } },
 ]
