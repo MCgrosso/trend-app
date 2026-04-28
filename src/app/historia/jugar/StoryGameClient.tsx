@@ -10,6 +10,8 @@ import Confetti from '@/components/Confetti'
 import { playSuccess, playError, playTick } from '@/lib/sounds'
 import { playChime } from '@/lib/storyMusic'
 import { submitStoryAnswer } from '../actions'
+import { SPECIAL_AVATARS } from '@/lib/avatars'
+import AvatarUnlockedModal from './AvatarUnlockedModal'
 
 interface Chapter {
   id: string
@@ -53,11 +55,12 @@ function reactionFor(mood: Mood, character: string) {
 }
 
 export default function StoryGameClient({
-  chapter, questions, previousAnswers,
+  chapter, questions, previousAnswers, userId,
 }: {
   chapter: Chapter
   questions: Question[]
   previousAnswers: { question_id: string; is_correct: boolean }[]
+  userId: string
 }) {
   const router = useRouter()
   const answeredMap = new Map(previousAnswers.map(a => [a.question_id, a.is_correct]))
@@ -73,8 +76,17 @@ export default function StoryGameClient({
   const [cardAnim, setCardAnim]       = useState('')
   const [showStars, setShowStars]     = useState(false)
   const [animatedScore, setAnimatedScore] = useState(0)
+  const [showUnlockModal, setShowUnlockModal] = useState(false)
   const timerRef  = useRef<ReturnType<typeof setInterval> | null>(null)
   const handleRef = useRef<((opt: Option) => Promise<void>) | null>(null)
+
+  // Find an avatar gated by this exact chapter (book + chapter number).
+  // The modal only triggers on a *fresh* completion via `advance()` — if the
+  // user reopens an already-finished chapter, `allDone` starts true and we
+  // never set `showUnlockModal`, so the celebration doesn't repeat.
+  const unlockableAvatar = SPECIAL_AVATARS.find(
+    a => a.chapterUnlock?.book === chapter.book && a.chapterUnlock?.chapter === chapter.chapter
+  ) ?? null
 
   const q = questions[current]
   const alreadyAnswered = q ? answeredMap.get(q.id) : undefined
@@ -140,6 +152,11 @@ export default function StoryGameClient({
       setShowStars(true)
       playChime()
       setTimeout(() => setShowStars(false), 4500)
+      // Pop the unlock modal a beat after the results screen settles, so the
+      // user reads the score first.
+      if (unlockableAvatar) {
+        setTimeout(() => setShowUnlockModal(true), 1800)
+      }
     } else {
       setCurrent(c => c + 1)
     }
@@ -209,6 +226,14 @@ export default function StoryGameClient({
             Volver al inicio
           </button>
         </div>
+
+        {showUnlockModal && unlockableAvatar && (
+          <AvatarUnlockedModal
+            avatar={unlockableAvatar}
+            userId={userId}
+            onClose={() => setShowUnlockModal(false)}
+          />
+        )}
       </div>
     )
   }

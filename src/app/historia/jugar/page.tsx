@@ -52,6 +52,7 @@ export default async function StoryGamePage({
       chapter={chapter}
       questions={questions ?? []}
       previousAnswers={myAnswers ?? []}
+      userId={user.id}
     />
   )
 }
