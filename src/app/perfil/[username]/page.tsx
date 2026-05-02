@@ -90,15 +90,38 @@ export default async function PerfilPublicoPage({
     .order('total_score', { ascending: false })
   const userRank = (ranking?.findIndex(p => p.id === profile.id) ?? -1) + 1
 
+  // Reflexiones públicas del Valle de Elá. Si soy el dueño, también traigo las
+  // privadas para que pueda gestionarlas desde el toggle.
+  const isMe = authUser?.id === profile.id
+  let reflectionsQuery = supabase
+    .from('events_progress')
+    .select('id, reflection_answer, is_public, completed_at, challenge:events_challenge(day_number, title, reflection_prompt)')
+    .eq('user_id', profile.id)
+    .not('reflection_answer', 'is', null)
+    .order('completed_at', { ascending: true, nullsFirst: false })
+  if (!isMe) reflectionsQuery = reflectionsQuery.eq('is_public', true)
+  const { data: reflectionsRaw } = await reflectionsQuery
+
+  // Supabase devuelve `challenge` como array si la relación inferida es to-many;
+  // normalizo a objeto único.
+  const publicReflections = (reflectionsRaw ?? []).map(r => ({
+    id: r.id as string,
+    reflection_answer: r.reflection_answer as string,
+    is_public: r.is_public as boolean,
+    completed_at: r.completed_at as string | null,
+    challenge: Array.isArray(r.challenge) ? (r.challenge[0] ?? null) : (r.challenge ?? null),
+  }))
+
   return (
     <PublicProfile
       profile={profile}
-      isMe={authUser?.id === profile.id}
+      isMe={isMe}
       isLoggedIn={!!authUser}
       weeklyScore={weeklyScore}
       isWeeklyChampion={isWeeklyChampion}
       completedChapters={completedChapters}
       globalRank={userRank}
+      publicReflections={publicReflections}
     />
   )
 }

@@ -142,3 +142,41 @@ export interface Event {
   location: string
   created_at: string
 }
+
+export interface BattleQuestion {
+  q: string
+  a: string
+  options: string[]
+}
+
+export interface EventChallenge {
+  id: string
+  event_name: string
+  day_number: number
+  title: string
+  subtitle: string
+  format: 'rpg' | 'narrative' | 'unlock'
+  narrative_text: string
+  reflection_prompt: string | null
+  character_image: string | null
+  enemy_image: string | null
+  unlock_date: string
+  frame_reward: string | null
+  frame_color: string | null
+  frame_style: string | null
+  battle_questions: BattleQuestion[] | null
+  is_active: boolean
+  created_at: string
+}
+
+export interface EventProgress {
+  id: string
+  user_id: string
+  challenge_day_id: string
+  completed: boolean
+  score: number
+  reflection_answer: string | null
+  is_public: boolean
+  completed_at: string | null
+  created_at: string
+}

@@ -8,6 +8,11 @@ export type Avatar = {
   label: string
   image?: string
   chapterUnlock?: { book: string; chapter: number }
+  // Identificador semántico para desbloqueos por evento (no por capítulo).
+  // Lo usa profile/page.tsx para empujar al avatar a unlockedSpecial cuando
+  // el flag correspondiente se cumple (ej: completaste todos los días del
+  // Valle de Elá → eventUnlock = 'valle_ela_complete').
+  eventUnlock?: string
 }
 
 export const AVATARS: Record<string, Avatar> = {
@@ -27,11 +32,14 @@ export const AVATARS: Record<string, Avatar> = {
   avatar_eva:      { emoji: '🍎', bg: '#be123c', label: 'Eva',      image: '/avatar_eva.png',      chapterUnlock: { book: 'Génesis', chapter: 3  } },
   avatar_abel:     { emoji: '🐑', bg: '#475569', label: 'Abel',     image: '/avatar_abel.png',     chapterUnlock: { book: 'Génesis', chapter: 4  } },
   avatar_abraham:  { emoji: '⭐', bg: '#7e22ce', label: 'Abraham',  image: '/avatar_abraham.png',  chapterUnlock: { book: 'Génesis', chapter: 12 } },
+  // Avatar especial desbloqueable por completar los 7 días del evento Valle de Elá
+  avatar_david:    { emoji: '👑', bg: '#fbbf24', label: 'David',    image: '/avatar_david.png',    eventUnlock: 'valle_ela_complete' },
 }
 
 const SPECIAL_IDS = new Set([
   'guerrero', 'profeta', 'apostol', 'campeon',
   'avatar_moises', 'avatar_adan', 'avatar_eva', 'avatar_abel', 'avatar_abraham',
+  'avatar_david',
 ])
 
 export const AVATAR_LIST = Object.entries(AVATARS)
@@ -46,6 +54,7 @@ export type SpecialAvatar = {
   description: string
   image?: string
   chapterUnlock?: { book: string; chapter: number }
+  eventUnlock?: string
 }
 
 export const SPECIAL_AVATARS: SpecialAvatar[] = [
@@ -59,4 +68,6 @@ export const SPECIAL_AVATARS: SpecialAvatar[] = [
   { id: 'avatar_eva',     emoji: '🍎', bg: '#be123c', label: 'Eva',     description: 'Completá Génesis 3',  image: '/avatar_eva.png',     chapterUnlock: { book: 'Génesis', chapter: 3  } },
   { id: 'avatar_abel',    emoji: '🐑', bg: '#475569', label: 'Abel',    description: 'Completá Génesis 4',  image: '/avatar_abel.png',    chapterUnlock: { book: 'Génesis', chapter: 4  } },
   { id: 'avatar_abraham', emoji: '⭐', bg: '#7e22ce', label: 'Abraham', description: 'Completá Génesis 12', image: '/avatar_abraham.png', chapterUnlock: { book: 'Génesis', chapter: 12 } },
+  // Evento Valle de Elá
+  { id: 'avatar_david',   emoji: '👑', bg: '#fbbf24', label: 'David',   description: 'Completá los 7 días del Valle de Elá', image: '/avatar_david.png',   eventUnlock: 'valle_ela_complete' },
 ]

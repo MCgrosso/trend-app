@@ -52,6 +52,17 @@ export default async function HomePage() {
     .limit(1)
     .maybeSingle()
 
+  // Día activo del Valle de Elá (último cuyo unlock_date ya pasó)
+  const { data: currentEvent } = await supabase
+    .from('events_challenge')
+    .select('day_number')
+    .eq('event_name', 'Valle de Elá')
+    .lte('unlock_date', new Date().toISOString())
+    .order('day_number', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  const currentEventDay: number | null = currentEvent?.day_number ?? null
+
   const hour = new Date().getHours()
   const greeting = hour < 12 ? '¡Buenos días' : hour < 19 ? '¡Buenas tardes' : '¡Buenas noches'
 
@@ -158,7 +169,7 @@ export default async function HomePage() {
           )}
 
           {/* ── EVENT BANNER ── */}
-          <EventBanner />
+          <EventBanner currentDay={currentEventDay} />
 
           {/* ── STREAK BAR ── */}
           {user && profile && (

@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import Stars from '@/components/Stars'
@@ -7,7 +8,8 @@ import Logo from '@/components/Logo'
 import Avatar from '@/components/Avatar'
 import { getTitle } from '@/lib/titles'
 import { getMedal } from '@/lib/medals'
-import { ChevronLeft, Star, Flame, Swords, Trophy, Calendar, Scroll, MessageCircle } from 'lucide-react'
+import { ChevronLeft, Star, Flame, Swords, Trophy, Calendar, Scroll, MessageCircle, Eye, EyeOff } from 'lucide-react'
+import { toggleReflectionPublic } from '@/app/eventos/actions'
 
 interface ProfileRow {
   id: string
@@ -39,6 +41,18 @@ interface ChapterRow {
   correct: number
 }
 
+export interface PublicReflectionRow {
+  id: string
+  reflection_answer: string
+  is_public: boolean
+  completed_at: string | null
+  challenge: {
+    day_number: number
+    title: string
+    reflection_prompt: string | null
+  } | null
+}
+
 function chapterBadge(pct: number) {
   if (pct === 100) return { icon: '👑', label: 'Perfecto',  color: 'text-yellow-300', bg: 'bg-yellow-500/20 border-yellow-400/60' }
   if (pct >= 80)   return { icon: '🏆', label: 'Excelente', color: 'text-amber-300',  bg: 'bg-amber-500/20 border-amber-400/50'  }
@@ -48,6 +62,7 @@ function chapterBadge(pct: number) {
 
 export default function PublicProfile({
   profile, isMe, isLoggedIn, weeklyScore, isWeeklyChampion, completedChapters, globalRank,
+  publicReflections = [],
 }: {
   profile: ProfileRow
   isMe: boolean
@@ -56,6 +71,7 @@ export default function PublicProfile({
   isWeeklyChampion: boolean
   completedChapters: ChapterRow[]
   globalRank: number
+  publicReflections?: PublicReflectionRow[]
 }) {
   const router = useRouter()
   const title = getTitle(profile.title)
@@ -247,12 +263,91 @@ export default function PublicProfile({
             </div>
           </div>
 
+          {/* ── Reflexiones del Valle de Elá ── */}
+          {(publicReflections.length > 0 || isMe) && (
+            <div className="bg-gradient-to-br from-amber-900/25 to-yellow-900/15 border border-amber-700/40 rounded-2xl p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-xl">📜</span>
+                <h3 className="font-bold text-amber-100">Reflexiones del Valle de Elá</h3>
+              </div>
+
+              {publicReflections.length === 0 ? (
+                <div className="text-center py-4">
+                  <p className="text-amber-200/70 text-sm">{isMe ? 'Aún no compartiste reflexiones públicas.' : 'Sin reflexiones públicas todavía'}</p>
+                  {isMe && (
+                    <Link href="/eventos" className="inline-block mt-2 text-amber-300 hover:text-amber-100 text-xs underline">
+                      Ir al evento
+                    </Link>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {publicReflections.map(r => (
+                    <ReflectionCard key={r.id} reflection={r} canEdit={isMe} />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* ── Member since ── */}
           <div className="text-center text-gray-500 text-xs pt-2">
             Miembro desde {new Date(profile.created_at).toLocaleDateString('es-AR', { month: 'long', year: 'numeric' })}
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+function ReflectionCard({
+  reflection,
+  canEdit,
+}: {
+  reflection: PublicReflectionRow
+  canEdit: boolean
+}) {
+  const [isPublic, setIsPublic] = useState(reflection.is_public)
+  const [pending, startTx] = useTransition()
+
+  function toggle() {
+    if (!canEdit) return
+    const next = !isPublic
+    setIsPublic(next)
+    startTx(async () => {
+      const res = await toggleReflectionPublic({ progressId: reflection.id, isPublic: next })
+      if (res.error) setIsPublic(!next) // rollback
+    })
+  }
+
+  return (
+    <div className="bg-amber-950/30 border border-amber-700/30 rounded-xl p-3">
+      <div className="flex items-center justify-between mb-1">
+        <p className="text-amber-300 text-[10px] uppercase tracking-widest font-bold">
+          Día {reflection.challenge?.day_number ?? '?'} · {reflection.challenge?.title ?? ''}
+        </p>
+        {canEdit && (
+          <button
+            type="button"
+            onClick={toggle}
+            disabled={pending}
+            className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full transition-colors ${
+              isPublic
+                ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-200 hover:bg-emerald-500/30'
+                : 'bg-gray-700/40 border border-gray-600/40 text-gray-300 hover:bg-gray-700/60'
+            }`}
+          >
+            {isPublic ? <Eye size={10} /> : <EyeOff size={10} />}
+            {isPublic ? 'Pública' : 'Privada'}
+          </button>
+        )}
+      </div>
+      {reflection.challenge?.reflection_prompt && (
+        <p className="text-amber-200/70 text-xs italic mb-2">{reflection.challenge.reflection_prompt}</p>
+      )}
+      <p className="text-amber-50 text-sm leading-relaxed whitespace-pre-line" style={{ fontFamily: 'serif' }}>
+        {reflection.reflection_answer}
+      </p>
     </div>
   )
 }

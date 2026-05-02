@@ -4,9 +4,9 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { Calendar, ChevronRight } from 'lucide-react'
 
-// Miércoles 30 de abril de 2026 a las 22:00 hs (Argentina, GMT-3)
+// Viernes 1 de mayo de 2026 a las 22:00 hs (Argentina, GMT-3) — Día 1 del Valle de Elá.
 // Expresado como UTC fija para que no dependa de la zona horaria del cliente.
-const TARGET_MS = Date.UTC(2026, 3, 1, 1, 0, 0) // 2026-05-01 01:00 UTC = 2026-04-30 22:00 UTC-3
+const TARGET_MS = Date.UTC(2026, 4, 2, 1, 0, 0) // 2026-05-02 01:00 UTC = 2026-05-01 22:00 UTC-3
 
 interface Remaining { d: number; h: number; m: number; s: number; done: boolean }
 
@@ -25,7 +25,7 @@ function computeRemaining(nowMs: number): Remaining {
 
 const pad = (n: number) => n.toString().padStart(2, '0')
 
-export default function EventBanner() {
+export default function EventBanner({ currentDay = null }: { currentDay?: number | null } = {}) {
   // SSR-stable placeholder (matches server HTML); the interval below flips
   // `liveNow` to the real wall clock on the next macrotask after mount.
   const [liveNow, setLiveNow] = useState<number | null>(null)
@@ -41,7 +41,7 @@ export default function EventBanner() {
   const label = remaining === null
     ? '— días --:--:--'
     : remaining.done
-      ? '¡El evento ya empezó!'
+      ? (currentDay ? `DÍA ${currentDay}/7 — Jugá ahora →` : '¡El evento ya empezó!')
       : `${remaining.d} día${remaining.d === 1 ? '' : 's'} ${pad(remaining.h)}:${pad(remaining.m)}:${pad(remaining.s)}`
 
   return (

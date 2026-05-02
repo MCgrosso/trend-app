@@ -133,6 +133,38 @@ export default async function ProfilePage() {
     if (done) unlockedSpecial.push(sa.id)
   }
 
+  // ── Evento Valle de Elá: marcos desbloqueados + avatar_david ──
+  const { data: eventChallenges } = await supabase
+    .from('events_challenge')
+    .select('id, day_number, frame_reward')
+    .eq('event_name', 'Valle de Elá')
+    .order('day_number', { ascending: true })
+
+  const { data: eventProgress } = await supabase
+    .from('events_progress')
+    .select('challenge_day_id, completed')
+    .eq('user_id', user.id)
+
+  const completedEventDayIds = new Set(
+    (eventProgress ?? []).filter(p => p.completed).map(p => p.challenge_day_id)
+  )
+
+  const unlockedEventFrames: string[] = []
+  for (const c of eventChallenges ?? []) {
+    if (c.frame_reward && completedEventDayIds.has(c.id)) {
+      unlockedEventFrames.push(c.frame_reward)
+    }
+  }
+
+  // Avatar David se desbloquea cuando los 7 días están completos
+  const valleElaComplete = (eventChallenges?.length ?? 0) > 0
+    && (eventChallenges ?? []).every(c => completedEventDayIds.has(c.id))
+  for (const sa of SPECIAL_AVATARS) {
+    if (sa.eventUnlock === 'valle_ela_complete' && valleElaComplete) {
+      unlockedSpecial.push(sa.id)
+    }
+  }
+
   // Fondos de avatar desbloqueados
   const unlockedBgs = computeUnlockedBgs({
     totalScore: profile?.total_score ?? 0,
@@ -272,6 +304,7 @@ export default async function ProfilePage() {
               avatarBg={profile?.avatar_bg ?? 'purple'}
               unlockedSpecial={unlockedSpecial}
               unlockedFrames={unlockedFrames}
+              unlockedEventFrames={unlockedEventFrames}
               unlockedBgs={unlockedBgs}
             />
           </div>

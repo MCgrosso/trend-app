@@ -5,7 +5,7 @@ import AvatarPicker from '@/components/AvatarPicker'
 import Avatar from '@/components/Avatar'
 import { createClient } from '@/lib/supabase/client'
 import { SPECIAL_AVATARS } from '@/lib/avatars'
-import { BASIC_FRAMES, SPECIAL_FRAMES } from '@/lib/frames'
+import { BASIC_FRAMES, SPECIAL_FRAMES, EVENT_FRAMES } from '@/lib/frames'
 import { BASIC_BGS, SPECIAL_BGS } from '@/lib/avatarBackgrounds'
 
 export default function AvatarSection({
@@ -16,6 +16,7 @@ export default function AvatarSection({
   avatarBg: initialBg,
   unlockedSpecial,
   unlockedFrames,
+  unlockedEventFrames = [],
   unlockedBgs,
 }: {
   userId: string
@@ -25,6 +26,7 @@ export default function AvatarSection({
   avatarBg: string | null
   unlockedSpecial: string[]
   unlockedFrames: string[]
+  unlockedEventFrames?: string[]
   unlockedBgs: string[]
 }) {
   const [tab, setTab] = useState<'avatar' | 'marco' | 'fondo'>('avatar')
@@ -179,6 +181,48 @@ export default function AvatarSection({
             <div className="grid grid-cols-3 gap-3">
               {SPECIAL_FRAMES.map(f => {
                 const unlocked = unlockedFrames.includes(f.id)
+                const active   = selectedFrame === f.id
+                return (
+                  <button
+                    key={f.id}
+                    type="button"
+                    disabled={!unlocked}
+                    onClick={() => unlocked && setSelectedFrame(f.id)}
+                    className="flex flex-col items-center gap-2 focus:outline-none"
+                  >
+                    <div
+                      className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl transition-all duration-150 ${
+                        !unlocked
+                          ? 'bg-gray-800 opacity-25 grayscale'
+                          : `bg-gray-800 ${f.cssClass} ${active ? 'scale-110' : 'opacity-80 hover:opacity-100 hover:scale-105'}`
+                      }`}
+                    >
+                      {!unlocked ? '🔒' : active ? '✓' : f.emoji}
+                    </div>
+                    <div className="text-center">
+                      <p className={`text-[11px] font-medium leading-tight ${
+                        !unlocked ? 'text-gray-700' : active ? 'text-white font-semibold' : 'text-gray-400'
+                      }`}>
+                        {f.emoji} {f.label}
+                      </p>
+                      {!unlocked && (
+                        <p className="text-[10px] text-gray-600 leading-tight mt-0.5">{f.unlock}</p>
+                      )}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Marcos del evento Valle de Elá */}
+          <div className="space-y-3">
+            <p className="text-xs text-amber-300 font-medium text-center inline-flex items-center gap-1.5 justify-center w-full">
+              <span>✦</span> Marcos del evento — Valle de Elá <span>✦</span>
+            </p>
+            <div className="grid grid-cols-3 gap-3">
+              {EVENT_FRAMES.map(f => {
+                const unlocked = unlockedEventFrames.includes(f.id)
                 const active   = selectedFrame === f.id
                 return (
                   <button
