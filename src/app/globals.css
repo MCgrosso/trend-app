@@ -198,6 +198,51 @@ body {
 }
 .animate-battle-flash { animation: battle-flash 0.4s ease-in-out; }
 
+/* ── La Palabra Oculta: llamas de velas ── */
+@keyframes candle-flicker {
+  0%, 100% {
+    transform: translateX(-50%) scaleY(1)   scaleX(1);
+    filter:   drop-shadow(0 0 6px rgba(251,191,36,0.85)) drop-shadow(0 0 14px rgba(251,191,36,0.55));
+  }
+  20%       { transform: translateX(-50%) scaleY(1.08) scaleX(0.96); }
+  40%       { transform: translateX(-52%) scaleY(0.94) scaleX(1.04);
+              filter:   drop-shadow(0 0 4px rgba(251,191,36,0.7))  drop-shadow(0 0 10px rgba(249,115,22,0.55)); }
+  60%       { transform: translateX(-48%) scaleY(1.05) scaleX(0.98); }
+  80%       { transform: translateX(-50%) scaleY(0.97) scaleX(1.02); }
+}
+.candle-flame { animation: candle-flicker 1.4s ease-in-out infinite; }
+
+@keyframes candle-extinguish {
+  0%   { transform: translateX(-50%) scaleY(1)   scaleX(1); opacity: 1; }
+  60%  { transform: translateX(-50%) scaleY(0.4) scaleX(0.6); opacity: 0.6; }
+  100% { transform: translateX(-50%) scaleY(0)   scaleX(0.2); opacity: 0; }
+}
+.candle-extinguishing { animation: candle-extinguish 0.7s ease-out forwards; }
+
+@keyframes candle-celebrate {
+  0%, 100% { transform: translateX(-50%) scale(1.05); filter: drop-shadow(0 0 14px rgba(251,191,36,1)) drop-shadow(0 0 24px rgba(251,191,36,0.8)); }
+  50%       { transform: translateX(-50%) scale(1.25); filter: drop-shadow(0 0 24px rgba(255,255,255,0.95)) drop-shadow(0 0 40px rgba(251,191,36,1)); }
+}
+.candle-celebrate { animation: candle-celebrate 0.7s ease-in-out infinite; }
+
+/* ── La Palabra Oculta: reveal letra ── */
+@keyframes letter-reveal {
+  0%   { transform: scale(0.2); opacity: 0; }
+  60%  { transform: scale(1.25); opacity: 1; }
+  100% { transform: scale(1);    opacity: 1; }
+}
+.animate-letter-reveal { animation: letter-reveal 0.45s ease-out both; }
+
+/* Sacudida de pantalla suave al fallar */
+@keyframes screen-shake {
+  0%, 100% { transform: translate(0, 0); }
+  20%       { transform: translate(-4px, 2px); }
+  40%       { transform: translate(4px, -2px); }
+  60%       { transform: translate(-3px, 3px); }
+  80%       { transform: translate(3px, -1px); }
+}
+.animate-screen-shake { animation: screen-shake 0.45s ease-in-out; }
+
 /* --- Timer / question slide --- */
 @keyframes slide-in {
   from { transform: translateX(36px); opacity: 0; }

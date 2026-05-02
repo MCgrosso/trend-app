@@ -145,6 +145,45 @@ export function playBattleDefeat() {
   } catch {}
 }
 
+// Soplido suave para apagar una vela (La Palabra Oculta).
+export function playCandleExtinguish() {
+  const c = getCtx()
+  if (!c) return
+  try {
+    // Ruido filtrado tipo whoosh: oscilador de baja frecuencia + ramp down rápido
+    const osc = c.createOscillator()
+    const gain = c.createGain()
+    osc.connect(gain)
+    gain.connect(c.destination)
+    osc.type = 'triangle'
+    osc.frequency.setValueAtTime(180, c.currentTime)
+    osc.frequency.exponentialRampToValueAtTime(40, c.currentTime + 0.4)
+    gain.gain.setValueAtTime(0.18, c.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.45)
+    osc.start(c.currentTime)
+    osc.stop(c.currentTime + 0.45)
+  } catch {}
+}
+
+// Brillo cálido al revelar una letra correcta.
+export function playLetterReveal() {
+  const c = getCtx()
+  if (!c) return
+  try {
+    const osc = c.createOscillator()
+    const gain = c.createGain()
+    osc.connect(gain)
+    gain.connect(c.destination)
+    osc.type = 'sine'
+    osc.frequency.setValueAtTime(880, c.currentTime)
+    osc.frequency.exponentialRampToValueAtTime(1320, c.currentTime + 0.12)
+    gain.gain.setValueAtTime(0.12, c.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.18)
+    osc.start(c.currentTime)
+    osc.stop(c.currentTime + 0.18)
+  } catch {}
+}
+
 export function playReflectionSaved() {
   const c = getCtx()
   if (!c) return

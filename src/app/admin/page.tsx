@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { BookOpen, Megaphone, Calendar, BarChart3, Users, Scroll, Bell, Church as ChurchIcon } from 'lucide-react'
+import { BookOpen, Megaphone, Calendar, BarChart3, Users, Scroll, Bell, Church as ChurchIcon, FileText } from 'lucide-react'
 import Logo from '@/components/Logo'
 
 export default async function AdminPage() {
@@ -31,6 +31,7 @@ export default async function AdminPage() {
     { count: totalNotifications },
     { count: totalChurches },
     { count: pendingChurches },
+    { count: totalPuzzles },
   ] = await Promise.all([
     supabase.from('questions').select('*', { count: 'exact', head: true }),
     supabase.from('questions').select('*', { count: 'exact', head: true }).eq('available_date', today),
@@ -41,6 +42,7 @@ export default async function AdminPage() {
     supabase.from('notifications').select('*', { count: 'exact', head: true }),
     supabase.from('churches').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
     supabase.from('churches').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+    supabase.from('word_puzzles').select('*', { count: 'exact', head: true }),
   ])
 
   const sections = [
@@ -86,6 +88,13 @@ export default async function AdminPage() {
       color: 'green',
       stat: `${totalChurches ?? 0} aprobadas${pendingChurches ? ` · ${pendingChurches} pendientes` : ''}`,
       badge: pendingChurches ?? 0,
+    },
+    {
+      href: '/admin/palabras',
+      icon: FileText,
+      label: 'La Palabra Oculta',
+      color: 'yellow',
+      stat: `${totalPuzzles ?? 0} versículos cargados`,
     },
   ]
 

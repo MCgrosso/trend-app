@@ -180,3 +180,26 @@ export interface EventProgress {
   completed_at: string | null
   created_at: string
 }
+
+export interface WordPuzzle {
+  id: string
+  verse: string
+  reference: string
+  hidden_words: string[]
+  hint: string
+  available_date: string
+  difficulty: 'easy' | 'medium' | 'hard'
+  created_at: string
+}
+
+export interface WordPuzzleAttempt {
+  id: string
+  user_id: string
+  puzzle_id: string
+  completed: boolean
+  errors: number
+  time_seconds: number | null
+  score: number
+  completed_at: string | null
+  created_at: string
+}

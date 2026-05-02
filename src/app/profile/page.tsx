@@ -133,6 +133,47 @@ export default async function ProfilePage() {
     if (done) unlockedSpecial.push(sa.id)
   }
 
+  // ── La Palabra Oculta: stats ──
+  const { data: puzzleAttemptsRaw } = await supabase
+    .from('word_puzzle_attempts')
+    .select('completed, errors, time_seconds, score, completed_at, puzzle:word_puzzles(available_date)')
+    .eq('user_id', user.id)
+
+  const puzzleAttempts = (puzzleAttemptsRaw ?? []) as Array<{
+    completed: boolean; errors: number; time_seconds: number | null
+    score: number; completed_at: string | null
+    puzzle: { available_date: string } | { available_date: string }[] | null
+  }>
+
+  const palabraStats = (() => {
+    const completed = puzzleAttempts.filter(a => a.completed)
+    const total = completed.length
+    if (total === 0) return { total: 0, bestTime: null as number | null, avgErrors: null as number | null, streak: 0 }
+    const bestTime = completed.reduce((min, a) => {
+      const t = a.time_seconds ?? Infinity
+      return t < min ? t : min
+    }, Infinity)
+    const avgErrors = completed.reduce((sum, a) => sum + a.errors, 0) / total
+
+    // Racha: días consecutivos a partir de hoy hacia atrás con un attempt completado en ese available_date
+    const dates = new Set(
+      completed
+        .map(a => Array.isArray(a.puzzle) ? a.puzzle[0]?.available_date : a.puzzle?.available_date)
+        .filter(Boolean) as string[]
+    )
+    let streak = 0
+    const cursor = new Date()
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const iso = cursor.toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' })
+      if (dates.has(iso)) {
+        streak++
+        cursor.setDate(cursor.getDate() - 1)
+      } else break
+    }
+    return { total, bestTime: bestTime === Infinity ? null : bestTime, avgErrors, streak }
+  })()
+
   // ── Evento Valle de Elá: marcos desbloqueados + avatar_david ──
   const { data: eventChallenges } = await supabase
     .from('events_challenge')
@@ -490,6 +531,44 @@ export default async function ProfilePage() {
                 </div>
               )
             })}
+          </div>
+        </div>
+
+        {/* La Palabra Oculta — stats */}
+        <div className="relative bg-gradient-to-br from-amber-900/30 to-purple-900/20 border border-amber-700/40 rounded-2xl p-5 overflow-hidden">
+          <div className="absolute -top-8 -right-8 w-32 h-32 bg-amber-500/15 blur-2xl rounded-full pointer-events-none" />
+          <div className="relative">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-amber-100 flex items-center gap-2">
+                <Scroll size={16} className="text-amber-400" /> La Palabra Oculta
+              </h3>
+              <Link href="/palabra-oculta" className="text-amber-300 hover:text-amber-100 text-xs underline">Jugar →</Link>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-amber-950/30 border border-amber-700/30 rounded-xl p-3 text-center">
+                <p className="text-amber-300/80 text-[10px] uppercase tracking-wider">Resueltos</p>
+                <p className="font-bebas text-2xl text-amber-100 leading-none mt-0.5">{palabraStats.total}</p>
+              </div>
+              <div className="bg-amber-950/30 border border-amber-700/30 rounded-xl p-3 text-center">
+                <p className="text-amber-300/80 text-[10px] uppercase tracking-wider">Racha</p>
+                <p className="font-bebas text-2xl text-amber-100 leading-none mt-0.5">{palabraStats.streak} 🔥</p>
+              </div>
+              <div className="bg-amber-950/30 border border-amber-700/30 rounded-xl p-3 text-center">
+                <p className="text-amber-300/80 text-[10px] uppercase tracking-wider">Mejor tiempo</p>
+                <p className="font-bebas text-2xl text-amber-100 leading-none mt-0.5">
+                  {palabraStats.bestTime === null
+                    ? '—'
+                    : `${Math.floor(palabraStats.bestTime / 60)}:${(palabraStats.bestTime % 60).toString().padStart(2, '0')}`}
+                </p>
+              </div>
+              <div className="bg-amber-950/30 border border-amber-700/30 rounded-xl p-3 text-center">
+                <p className="text-amber-300/80 text-[10px] uppercase tracking-wider">Errores promedio</p>
+                <p className="font-bebas text-2xl text-amber-100 leading-none mt-0.5">
+                  {palabraStats.avgErrors === null ? '—' : palabraStats.avgErrors.toFixed(1)}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 
