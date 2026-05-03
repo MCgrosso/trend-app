@@ -20,6 +20,7 @@ interface GlobalProfile {
   avatar_bg: string | null
   clan_id?: string | null
   church_id?: string | null
+  level?: number | null
 }
 
 interface ClanLookup { id: string; name: string; shield_color: string | null; shield_bg: string | null; shield_icon: string | null }
@@ -138,10 +139,17 @@ export default function RankingClient({
                   <Link href={`/perfil/${p.username}`} className="flex items-center gap-3 flex-1 min-w-0 group">
                     <Avatar avatarUrl={p.avatar_url} firstName={p.first_name} size="sm" frame={p.frame} bg={p.avatar_bg} />
                     <div className="flex-1 min-w-0">
-                      <p className={`font-semibold truncate group-hover:text-cyan-300 transition-colors ${isMe ? 'text-purple-200' : 'text-white'}`}>
-                        {p.first_name} {p.last_name}
-                        {isMe && <span className="text-purple-400 text-xs ml-2">(vos)</span>}
-                      </p>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <p className={`font-semibold truncate group-hover:text-cyan-300 transition-colors ${isMe ? 'text-purple-200' : 'text-white'}`}>
+                          {p.first_name} {p.last_name}
+                          {isMe && <span className="text-purple-400 text-xs ml-2">(vos)</span>}
+                        </p>
+                        {p.level && (
+                          <span className="inline-flex items-center gap-0.5 text-[9px] font-bold bg-cyan-500/20 border border-cyan-400/40 text-cyan-200 px-1.5 py-0.5 rounded-full">
+                            Lv {p.level}
+                          </span>
+                        )}
+                      </div>
                       <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
                         <span className="text-gray-400 text-xs group-hover:text-cyan-400/80 transition-colors">@{p.username}</span>
                         {church && (

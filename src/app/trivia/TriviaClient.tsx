@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { Question } from '@/lib/types'
 import { submitAnswer } from './actions'
+import ResultCard from '@/components/ResultCard'
+import { createClient as createBrowserClient } from '@/lib/supabase/client'
 import { CheckCircle, XCircle, ChevronRight, Star } from 'lucide-react'
 import { playSuccess, playError, playTick } from '@/lib/sounds'
 import { getMedal } from '@/lib/medals'
@@ -65,6 +67,7 @@ export default function TriviaClient({ questions, answeredMap, initialWeeklyScor
   const [showFloatingPoints, setShowFloatingPoints] = useState(false)
   const [streakMsg,          setStreakMsg]          = useState<string | null>(null)
   const [medalEarned,        setMedalEarned]        = useState<{ icon: string; label: string } | null>(null)
+  const [resultCard,         setResultCard]         = useState<{ stars: 1 | 2 | 3; xpBefore: number; xpAfter: number; xpEarned: number; pts: number } | null>(null)
 
   // Streak & weekly score tracking
   const [consecutive,    setConsecutive]    = useState(0)
@@ -91,7 +94,7 @@ export default function TriviaClient({ questions, answeredMap, initialWeeklyScor
     setSelected(option)
 
     try {
-      const { error, isCorrect } = await submitAnswer(question.id, option)
+      const { error, isCorrect, allDailyDone, streakBonus } = await submitAnswer(question.id, option)
       if (error) {
         setInsertError(error)
         return
@@ -102,6 +105,30 @@ export default function TriviaClient({ questions, answeredMap, initialWeeklyScor
         [question.id]: { selected_option: option, is_correct: isCorrect },
       }))
       setShowResult(true)
+
+      // Si esta respuesta cerró la jornada diaria, lanzamos el ResultCard.
+      // Calculamos estrellas en base al % de aciertos del día.
+      if (allDailyDone) {
+        const allAnswers = { ...localAnswersRef.current, [question.id]: { selected_option: option, is_correct: isCorrect } }
+        const correctCount = Object.values(allAnswers).filter(a => a.is_correct).length
+        const totalCount   = questions.length
+        const pct = totalCount > 0 ? correctCount / totalCount : 0
+        const stars: 1 | 2 | 3 = pct >= 0.8 ? 3 : pct >= 0.5 ? 2 : 1
+        const wrongCount = totalCount - correctCount
+        const xpEarned = correctCount * 5 + wrongCount * 1 + 20 /*bonus*/ + (streakBonus ?? 0)
+
+        const supabase = createBrowserClient()
+        supabase.auth.getUser().then(({ data: { user } }) => {
+          if (!user) return
+          supabase.from('profiles').select('xp').eq('id', user.id).single().then(({ data }) => {
+            const xpAfter = data?.xp ?? 0
+            setResultCard({
+              stars, xpBefore: Math.max(0, xpAfter - xpEarned), xpAfter, xpEarned,
+              pts: correctCount * 10,
+            })
+          })
+        })
+      }
       setScoreGained(isCorrect)
 
       if (isCorrect) {
@@ -361,6 +388,20 @@ export default function TriviaClient({ questions, answeredMap, initialWeeklyScor
         >
           Siguiente pregunta <ChevronRight size={18} />
         </button>
+      )}
+
+      {resultCard && (
+        <ResultCard
+          open
+          stars={resultCard.stars}
+          title="¡Trivias del día completas!"
+          subtitle="Volvé mañana por más"
+          pointsEarned={resultCard.pts}
+          xpEarned={resultCard.xpEarned}
+          xpBefore={resultCard.xpBefore}
+          xpAfter={resultCard.xpAfter}
+          onClose={() => setResultCard(null)}
+        />
       )}
     </div>
   )

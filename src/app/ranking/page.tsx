@@ -12,7 +12,7 @@ export default async function RankingPage() {
 
   const { data: globalTop10 } = await supabase
     .from('profiles')
-    .select('id, username, first_name, last_name, total_score, avatar_url, frame, avatar_bg, clan_id, church_id')
+    .select('id, username, first_name, last_name, total_score, avatar_url, frame, avatar_bg, clan_id, church_id, level')
     .order('total_score', { ascending: false })
     .limit(10)
 
@@ -38,7 +38,7 @@ export default async function RankingPage() {
   if (user) {
     const { data: allProfiles } = await supabase
       .from('profiles')
-      .select('id, username, first_name, last_name, total_score, avatar_url, frame, avatar_bg, clan_id, church_id')
+      .select('id, username, first_name, last_name, total_score, avatar_url, frame, avatar_bg, clan_id, church_id, level')
       .order('total_score', { ascending: false })
 
     userGlobalRank = (allProfiles?.findIndex(p => p.id === user.id) ?? -1) + 1

@@ -24,6 +24,9 @@ export const AVATAR_BGS: AvatarBg[] = [
   { id: 'rainbow', label: 'Arcoíris', emoji: '🌈', category: 'special', cssClass: 'bg-av-rainbow', previewColor: '#a855f7', unlock: 'Campeón semanal' },
   { id: 'gold',    label: 'Dorado',   emoji: '👑', category: 'special', cssClass: 'bg-av-gold',    previewColor: '#ca8a04', unlock: '10 victorias en duelos' },
   { id: 'holy',    label: 'Santo',    emoji: '✨', category: 'special', cssClass: 'bg-av-holy',    previewColor: '#f8fafc', unlock: '5 capítulos de historia' },
+  // Fondos por nivel
+  { id: 'cosmos',        label: 'Cosmos',        emoji: '🌌', category: 'special', cssClass: 'bg-av-cosmos',        previewColor: '#1e1b4b', unlock: 'Nivel 20' },
+  { id: 'fuego_sagrado', label: 'Fuego Sagrado', emoji: '🔥', category: 'special', cssClass: 'bg-av-fuego-sagrado', previewColor: '#b45309', unlock: 'Nivel 40' },
 ]
 
 export const BASIC_BGS   = AVATAR_BGS.filter(b => b.category === 'basic')
@@ -36,6 +39,7 @@ export function computeUnlockedBgs(opts: {
   isWeeklyChampion: boolean
   duelWins:     number
   completedStoryChapters: number
+  level?:       number
 }): string[] {
   const unlocked = BASIC_BGS.map(b => b.id)
   if (opts.totalScore >= 200)            unlocked.push('galaxy')
@@ -43,5 +47,8 @@ export function computeUnlockedBgs(opts: {
   if (opts.isWeeklyChampion)             unlocked.push('rainbow')
   if (opts.duelWins >= 10)               unlocked.push('gold')
   if (opts.completedStoryChapters >= 5)  unlocked.push('holy')
+  // Fondos por nivel
+  if ((opts.level ?? 1) >= 20)           unlocked.push('cosmos')
+  if ((opts.level ?? 1) >= 40)           unlocked.push('fuego_sagrado')
   return unlocked
 }

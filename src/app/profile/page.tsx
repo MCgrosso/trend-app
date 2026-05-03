@@ -7,7 +7,9 @@ import AvatarSection from './AvatarSection'
 import BioEditor from './BioEditor'
 import ChurchSection from './ChurchSection'
 import { SPECIAL_AVATARS } from '@/lib/avatars'
-import { Star, Flame, Calendar, Shield, Swords, Trophy, Scroll, BookOpen } from 'lucide-react'
+import { Star, Flame, Calendar, Shield, Swords, Trophy, Scroll, BookOpen, Zap } from 'lucide-react'
+import { getXpProgress } from '@/lib/xp'
+import { getNextReward } from '@/lib/levelRewards'
 import Logo from '@/components/Logo'
 import Stars from '@/components/Stars'
 import Avatar from '@/components/Avatar'
@@ -71,6 +73,10 @@ export default async function ProfilePage() {
   if ((profile?.streak_days ?? 0) >= 5) unlockedSpecial.push('profeta')
   if ((profile?.total_score ?? 0) >= 200) unlockedSpecial.push('apostol')
   if ((profile?.win_streak ?? 0) >= 3 || (profile?.best_streak ?? 0) >= 3) unlockedSpecial.push('campeon')
+  // Avatares por nivel
+  if ((profile?.level ?? 1) >= 10) unlockedSpecial.push('avatar_pergamino')
+  if ((profile?.level ?? 1) >= 30) unlockedSpecial.push('avatar_corona')
+  if ((profile?.level ?? 1) >= 50) unlockedSpecial.push('avatar_angel')
 
   // Marcos desbloqueados (básicos siempre disponibles)
   const unlockedFrames = ['white', 'blue', 'emerald', 'red', 'orange', 'purple', 'pink']
@@ -79,6 +85,14 @@ export default async function ProfilePage() {
   if ((profile?.streak_days ?? 0) >= 5)   unlockedFrames.push('rainbow')
   if (isWeeklyChampion)                    unlockedFrames.push('golden')
   if ((profile?.total_score  ?? 0) >= 300) unlockedFrames.push('divine')
+
+  // Marcos desbloqueados por nivel (sistema XP)
+  const userLevel = profile?.level ?? 1
+  if (userLevel >= 5)  unlockedFrames.push('aprendiz_dorado')
+  if (userLevel >= 15) unlockedFrames.push('sabio')
+  if (userLevel >= 25) unlockedFrames.push('profeta_frame')
+  if (userLevel >= 35) unlockedFrames.push('rey')
+  if (userLevel >= 45) unlockedFrames.push('leyenda')
 
   // Title & progress
   const duelWins   = profile?.wins   ?? 0
@@ -213,6 +227,7 @@ export default async function ProfilePage() {
     isWeeklyChampion,
     duelWins:   profile?.wins ?? 0,
     completedStoryChapters: completedChapters.length,
+    level:      profile?.level ?? 1,
   })
 
   // Total Bible chapters approximation (OT + NT = 1189)
@@ -322,6 +337,53 @@ export default async function ProfilePage() {
             )}
           </div>
         </div>
+
+        {/* Nivel + XP */}
+        {(() => {
+          const totalXp = profile?.xp ?? 0
+          const xpInfo = getXpProgress(totalXp)
+          const nextReward = getNextReward(xpInfo.level)
+          return (
+            <div className="relative bg-gradient-to-br from-[#1a0a4e] via-[#0f0a2e] to-[#1a0a4e] border border-cyan-500/40 rounded-2xl p-5 overflow-hidden">
+              <div className="absolute -top-8 -right-8 w-32 h-32 bg-cyan-500/20 blur-2xl rounded-full pointer-events-none" />
+              <div className="relative">
+                <div className="flex items-end justify-between mb-3">
+                  <div>
+                    <p className="text-cyan-300 text-[10px] uppercase tracking-[0.3em] font-bold flex items-center gap-1">
+                      <Zap size={11} className="text-cyan-400" /> Tu nivel
+                    </p>
+                    <p className="font-bebas text-5xl text-white leading-none mt-1">{xpInfo.level}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-cyan-200/80 text-[10px] uppercase tracking-wider">XP total</p>
+                    <p className="font-bebas text-2xl text-cyan-100 leading-none">{totalXp}</p>
+                  </div>
+                </div>
+                <div className="h-3 bg-black/50 rounded-full overflow-hidden border border-cyan-700/40">
+                  <div
+                    className="h-full bg-gradient-to-r from-purple-500 via-cyan-400 to-purple-400 transition-all duration-700"
+                    style={{ width: `${xpInfo.percentage}%` }}
+                  />
+                </div>
+                <div className="flex justify-between items-center mt-1.5 text-[11px]">
+                  <span className="text-cyan-200/80 tabular-nums">{xpInfo.currentXp}/{xpInfo.requiredXp} XP</span>
+                  <span className="text-cyan-300/60">
+                    {xpInfo.level >= 50 ? 'NIVEL MÁXIMO' : `${xpInfo.requiredXp - xpInfo.currentXp} XP para nivel ${xpInfo.level + 1}`}
+                  </span>
+                </div>
+                {nextReward && (
+                  <div className="mt-3 bg-amber-900/25 border border-amber-700/40 rounded-lg p-2.5 flex items-center gap-2">
+                    <span className="text-2xl">{nextReward.emoji ?? '🎁'}</span>
+                    <div className="flex-1">
+                      <p className="text-amber-300 text-[10px] uppercase tracking-wider font-bold">Próxima recompensa · Nivel {nextReward.level}</p>
+                      <p className="text-amber-100 text-sm">{nextReward.label}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )
+        })()}
 
         {/* Personalizar avatar y marco */}
         <div className="bg-[#0f0a2e]/80 border border-purple-700/40 rounded-2xl p-5 space-y-5">

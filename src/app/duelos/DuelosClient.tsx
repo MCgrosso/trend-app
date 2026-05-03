@@ -9,7 +9,8 @@ import ChurchBadge from '@/components/ChurchBadge'
 import { createClient } from '@/lib/supabase/client'
 import { getTitle, DUEL_CATEGORIES } from '@/lib/titles'
 import { createDuel, acceptDuel, rejectDuel, cancelDuel } from './actions'
-import { Swords, X, Clock, CheckCircle2, ChevronRight, Star, Trophy, Loader2 } from 'lucide-react'
+import { Swords, X, Clock, CheckCircle2, ChevronRight, Star, Trophy, Loader2, Zap, Handshake } from 'lucide-react'
+import { computeCurrentEnergy, msToNextRecharge, formatRechargeCountdown, MAX_ENERGY } from '@/lib/energy'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -36,6 +37,7 @@ interface DuelRow {
   opponent_finished: boolean
   created_at: string
   is_inter_church?: boolean | null
+  is_ranked?: boolean | null
   challenger: DuelProfile
   opponent: DuelProfile
 }
@@ -75,6 +77,8 @@ interface Props {
   challengedTodayIds: string[]
   myChurchId: string | null
   isAmbassador: boolean
+  storedEnergy: number
+  energyLastRecharge: string
 }
 
 type Modal = 'none' | 'pick-cats' | 'accept-cats'
@@ -295,7 +299,7 @@ function CategoryModal({
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function DuelosClient({ userId, profile, duels, dailyCount, challengedTodayIds, myChurchId, isAmbassador }: Props) {
+export default function DuelosClient({ userId, profile, duels, dailyCount, challengedTodayIds, myChurchId, isAmbassador, storedEnergy, energyLastRecharge }: Props) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const challengeQueryId = searchParams.get('challenge')
@@ -305,6 +309,23 @@ export default function DuelosClient({ userId, profile, duels, dailyCount, chall
   const [globalErr, setGlobalErr]       = useState<string | null>(null)
   const [autoChallengeHandled, setAutoChallengeHandled] = useState(false)
   const [scope, setScope]               = useState<'all' | 'inter'>('all')
+  const [mode, setMode]                 = useState<'ranked' | 'unranked'>('ranked')
+
+  // Energía: se calcula en vivo desde los valores almacenados.
+  const [now, setNow] = useState<number | null>(null)
+  useEffect(() => {
+    const first = setTimeout(() => setNow(Date.now()), 0)
+    const tick  = setInterval(() => setNow(Date.now()), 1000)
+    return () => { clearTimeout(first); clearInterval(tick) }
+  }, [])
+  const currentEnergy = useMemo(
+    () => (now === null ? storedEnergy : computeCurrentEnergy(storedEnergy, energyLastRecharge, now)),
+    [now, storedEnergy, energyLastRecharge]
+  )
+  const rechargeMs = useMemo(
+    () => (now === null ? 0 : msToNextRecharge(storedEnergy, energyLastRecharge, now)),
+    [now, storedEnergy, energyLastRecharge]
+  )
 
   // ── Player list (fetched client-side) ──────────────────────────────────────
   const [players, setPlayers]       = useState<Player[]>([])
@@ -434,12 +455,16 @@ export default function DuelosClient({ userId, profile, duels, dailyCount, chall
 
   function openChallenge(player: Player) {
     if (dailyCount >= 3) return
+    if (mode === 'ranked' && currentEnergy <= 0) {
+      setGlobalErr(`Sin energía. Recarga en ${formatRechargeCountdown(rechargeMs)}`)
+      return
+    }
     setTarget(player); setModal('pick-cats'); setGlobalErr(null)
   }
 
   async function handleSendChallenge(cats: string[]) {
     if (!target) return
-    const { error, duelId } = await createDuel(target.id, cats)
+    const { error, duelId } = await createDuel(target.id, cats, mode === 'ranked')
     if (error) throw new Error(error)
     setModal('none'); setTarget(null)
     if (duelId) router.refresh()
@@ -535,6 +560,61 @@ export default function DuelosClient({ userId, profile, duels, dailyCount, chall
           </div>
         )}
 
+        {/* Selector de modo + barra de energía */}
+        <div className="bg-[#0f0a2e]/60 border border-purple-700/40 rounded-xl p-3 space-y-3">
+          <div className="flex gap-1.5">
+            <button
+              onClick={() => setMode('ranked')}
+              className={`flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
+                mode === 'ranked'
+                  ? 'bg-gradient-to-r from-amber-600 to-yellow-500 text-stone-900 shadow-[0_0_12px_rgba(251,191,36,0.5)]'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              <Swords size={12} /> Rankeado
+            </button>
+            <button
+              onClick={() => setMode('unranked')}
+              className={`flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
+                mode === 'unranked'
+                  ? 'bg-gradient-to-r from-emerald-600 to-cyan-600 text-white shadow-[0_0_12px_rgba(16,185,129,0.5)]'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              <Handshake size={12} /> Amistoso
+            </button>
+          </div>
+
+          {/* Barra de energía (solo relevante en modo ranked) */}
+          <div className={mode === 'ranked' ? 'opacity-100' : 'opacity-50'}>
+            <div className="flex items-center gap-1.5">
+              {Array.from({ length: MAX_ENERGY }).map((_, i) => {
+                const filled = i < currentEnergy
+                return (
+                  <span
+                    key={i}
+                    className={`flex items-center justify-center w-7 h-7 rounded-lg border transition-all ${
+                      filled
+                        ? 'bg-gradient-to-br from-amber-400 to-yellow-600 border-amber-300 text-yellow-50 shadow-[0_0_8px_rgba(251,191,36,0.55)]'
+                        : 'bg-gray-800/60 border-gray-700/50 text-gray-700'
+                    }`}
+                  >
+                    <Zap size={14} fill={filled ? 'currentColor' : 'none'} />
+                  </span>
+                )
+              })}
+              <span className="ml-2 text-xs text-amber-200/80 tabular-nums">{currentEnergy}/{MAX_ENERGY}</span>
+            </div>
+            <p className="text-[10px] text-gray-500 mt-1">
+              {currentEnergy >= MAX_ENERGY
+                ? 'Energía completa ✦'
+                : mode === 'ranked'
+                  ? `Próxima recarga en ${formatRechargeCountdown(rechargeMs)}`
+                  : 'Los duelos amistosos no consumen energía'}
+            </p>
+          </div>
+        </div>
+
         {/* My stats */}
         {profile && (
           <div className="grid grid-cols-3 gap-2">
@@ -621,6 +701,13 @@ export default function DuelosClient({ userId, profile, duels, dailyCount, chall
                             ⚔️ Inter
                           </span>
                         )}
+                        <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full border ${
+                          duel.is_ranked === false
+                            ? 'bg-cyan-500/15 border-cyan-400/40 text-cyan-200'
+                            : 'bg-amber-500/15 border-amber-400/40 text-amber-200'
+                        }`}>
+                          {duel.is_ranked === false ? 'Amistoso' : 'Ranked'}
+                        </span>
                       </div>
                       <p className="text-purple-400 text-xs">{done ? 'Esperando rival...' : '¡Jugá ahora!'}</p>
                     </div>
@@ -653,6 +740,13 @@ export default function DuelosClient({ userId, profile, duels, dailyCount, chall
                             ⚔️ Inter
                           </span>
                         )}
+                        <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full border ${
+                          duel.is_ranked === false
+                            ? 'bg-cyan-500/15 border-cyan-400/40 text-cyan-200'
+                            : 'bg-amber-500/15 border-amber-400/40 text-amber-200'
+                        }`}>
+                          {duel.is_ranked === false ? 'Amistoso' : 'Ranked'}
+                        </span>
                       </div>
                       <p className={`text-xs font-semibold ${isWinner ? 'text-green-400' : isDraw ? 'text-yellow-400' : 'text-red-400'}`}>
                         {isWinner ? '✓ Victoria' : isDraw ? '= Empate' : '✗ Derrota'} · {myScore(duel)}/{myScore(duel) + opScore(duel)} correctas

@@ -3,6 +3,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { computeScore } from './score'
+import { awardXpTo } from '@/lib/awardXp'
+import { XP_REWARDS } from '@/lib/xp'
 
 export async function submitPuzzleAttempt({
   puzzleId,
@@ -57,6 +59,8 @@ export async function submitPuzzleAttempt({
     const { data: prof } = await supabase.from('profiles').select('total_score').eq('id', user.id).single()
     const current = prof?.total_score ?? 0
     await supabase.from('profiles').update({ total_score: current + score }).eq('id', user.id)
+    // XP por completar La Palabra Oculta
+    await awardXpTo(user.id, XP_REWARDS.PALABRA_OCULTA)
   }
 
   revalidatePath('/palabra-oculta')

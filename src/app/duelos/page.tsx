@@ -20,7 +20,7 @@ export default async function DuelosPage() {
   ] = await Promise.all([
     supabase
       .from('profiles')
-      .select('id, username, first_name, avatar_url, frame, avatar_bg, wins, losses, draws, win_streak, best_streak, title, church_id, inter_church_wins')
+      .select('id, username, first_name, avatar_url, frame, avatar_bg, wins, losses, draws, win_streak, best_streak, title, church_id, inter_church_wins, energy, energy_last_recharge, ranked_wins, unranked_wins')
       .eq('id', user.id)
       .single(),
 
@@ -64,6 +64,8 @@ export default async function DuelosPage() {
       challengedTodayIds={challengedTodayIds}
       myChurchId={profile?.church_id ?? null}
       isAmbassador={isAmbassador}
+      storedEnergy={profile?.energy ?? 0}
+      energyLastRecharge={profile?.energy_last_recharge ?? new Date().toISOString()}
     />
   )
 }

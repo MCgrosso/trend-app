@@ -12,6 +12,8 @@ import { playChime } from '@/lib/storyMusic'
 import { submitStoryAnswer } from '../actions'
 import { SPECIAL_AVATARS } from '@/lib/avatars'
 import AvatarUnlockedModal from './AvatarUnlockedModal'
+import ResultCard from '@/components/ResultCard'
+import { createClient as createBrowserClient } from '@/lib/supabase/client'
 
 interface Chapter {
   id: string
@@ -77,6 +79,7 @@ export default function StoryGameClient({
   const [showStars, setShowStars]     = useState(false)
   const [animatedScore, setAnimatedScore] = useState(0)
   const [showUnlockModal, setShowUnlockModal] = useState(false)
+  const [resultCard, setResultCard] = useState<{ stars: 1 | 2 | 3; xpBefore: number; xpAfter: number; xpEarned: number; pts: number } | null>(null)
   const timerRef  = useRef<ReturnType<typeof setInterval> | null>(null)
   const handleRef = useRef<((opt: Option) => Promise<void>) | null>(null)
 
@@ -152,8 +155,30 @@ export default function StoryGameClient({
       setShowStars(true)
       playChime()
       setTimeout(() => setShowStars(false), 4500)
-      // Pop the unlock modal a beat after the results screen settles, so the
-      // user reads the score first.
+      // Disparar ResultCard con el snapshot de XP del usuario (server fetch ligero)
+      const correctCount = [...results, true /*placeholder*/].slice(0, questions.length).filter(Boolean).length
+      const stars: 1 | 2 | 3 = correctCount >= 5 ? 3 : correctCount >= 3 ? 2 : 1
+      // Hacemos un fetch del XP del profile inmediatamente — el bonus de capítulo
+      // ya fue otorgado en el último submitStoryAnswer si correspondía.
+      const supabase = createBrowserClient()
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (!user) return
+        supabase.from('profiles').select('xp').eq('id', user.id).single().then(({ data }) => {
+          const xpAfter = data?.xp ?? 0
+          // Aproximamos xpEarned del juego: 5*correct + 1*wrong (+25 si todos)
+          const wrongCount = results.filter(r => r === false).length
+          const baseXp = correctCount * 5 + wrongCount * 1
+          const bonus = correctCount + wrongCount >= questions.length ? 25 : 0
+          const xpEarned = baseXp + bonus
+          setResultCard({
+            stars,
+            xpBefore: Math.max(0, xpAfter - xpEarned),
+            xpAfter,
+            xpEarned,
+            pts: correctCount * 10,
+          })
+        })
+      })
       if (unlockableAvatar) {
         setTimeout(() => setShowUnlockModal(true), 1800)
       }
@@ -232,6 +257,20 @@ export default function StoryGameClient({
             avatar={unlockableAvatar}
             userId={userId}
             onClose={() => setShowUnlockModal(false)}
+          />
+        )}
+
+        {resultCard && (
+          <ResultCard
+            open
+            stars={resultCard.stars}
+            title="¡Capítulo completado!"
+            subtitle={`${chapter.book} ${chapter.chapter}`}
+            pointsEarned={resultCard.pts}
+            xpEarned={resultCard.xpEarned}
+            xpBefore={resultCard.xpBefore}
+            xpAfter={resultCard.xpAfter}
+            onClose={() => setResultCard(null)}
           />
         )}
       </div>

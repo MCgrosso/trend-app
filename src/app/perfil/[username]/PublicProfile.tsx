@@ -10,6 +10,7 @@ import { getTitle } from '@/lib/titles'
 import { getMedal } from '@/lib/medals'
 import { ChevronLeft, Star, Flame, Swords, Trophy, Calendar, Scroll, MessageCircle, Eye, EyeOff } from 'lucide-react'
 import { toggleReflectionPublic } from '@/app/eventos/actions'
+import { getXpProgress } from '@/lib/xp'
 
 interface ProfileRow {
   id: string
@@ -29,6 +30,8 @@ interface ProfileRow {
   win_streak: number
   best_streak: number
   created_at: string
+  xp?: number | null
+  level?: number | null
 }
 
 interface ChapterRow {
@@ -159,6 +162,29 @@ export default function PublicProfile({
           </div>
 
           {/* ── Stats ── */}
+          {/* Nivel + XP */}
+          {(() => {
+            const totalXp = profile.xp ?? 0
+            const xp = getXpProgress(totalXp)
+            return (
+              <div className="bg-gradient-to-br from-[#1a0a4e] to-[#0f0a2e] border border-cyan-500/40 rounded-2xl p-4">
+                <div className="flex items-end justify-between mb-2">
+                  <div>
+                    <p className="text-cyan-300 text-[10px] uppercase tracking-widest font-bold">Nivel</p>
+                    <p className="font-bebas text-4xl text-white leading-none">{xp.level}</p>
+                  </div>
+                  <p className="text-cyan-200/80 text-[11px] tabular-nums">{totalXp} XP total</p>
+                </div>
+                <div className="h-2.5 bg-black/50 rounded-full overflow-hidden border border-cyan-700/40">
+                  <div className="h-full bg-gradient-to-r from-purple-500 via-cyan-400 to-purple-400" style={{ width: `${xp.percentage}%` }} />
+                </div>
+                <p className="text-cyan-300/60 text-[10px] mt-1 text-right">
+                  {xp.level >= 50 ? 'NIVEL MÁXIMO' : `${xp.requiredXp - xp.currentXp} XP para nivel ${xp.level + 1}`}
+                </p>
+              </div>
+            )
+          })()}
+
           <div className="grid grid-cols-2 gap-3">
             <StatCard icon={<Star size={20} />}     value={profile.total_score} label="Puntaje total"   color="amber"   />
             <StatCard icon={<Flame size={20} />}    value={profile.streak_days} label="Días seguidos"   color="orange"  />

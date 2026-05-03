@@ -21,6 +21,12 @@ export interface Profile {
   church_id: string | null
   clan_id: string | null
   inter_church_wins: number
+  xp: number
+  level: number
+  energy: number
+  energy_last_recharge: string
+  ranked_wins: number
+  unranked_wins: number
 }
 
 export interface Church {
@@ -78,6 +84,7 @@ export interface Duel {
   created_at: string
   finished_at: string | null
   is_inter_church?: boolean
+  is_ranked?: boolean
   result_applied?: boolean
 }
 

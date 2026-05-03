@@ -31,6 +31,12 @@ export const FRAMES: Frame[] = [
   { id: 'mensajero_frame', label: 'Mensajero',        emoji: '📜', category: 'event', cssClass: 'frame-mensajero', previewColor: '#00d4ff', unlock: 'Día 5 — Valle de Elá'       },
   { id: 'elegido_frame',   label: 'Elegido',          emoji: '⚔️', category: 'event', cssClass: 'frame-elegido',   previewColor: '#fbbf24', unlock: 'Día 6 — Valle de Elá'       },
   { id: 'valle_ela_frame', label: 'Héroe del Valle',  emoji: '🏆', category: 'event', cssClass: 'frame-valle-ela', previewColor: '#ec4899', unlock: 'Completaste los 7 días'      },
+  // Marcos por nivel (categoría 'special' para que aparezcan en la grilla existente)
+  { id: 'aprendiz_dorado', label: 'Aprendiz Dorado', emoji: '🥇', category: 'special', cssClass: 'frame-aprendiz-dorado', previewColor: '#eab308', unlock: 'Nivel 5'  },
+  { id: 'sabio',           label: 'Sabio',            emoji: '🤍', category: 'special', cssClass: 'frame-sabio',           previewColor: '#cbd5e1', unlock: 'Nivel 15' },
+  { id: 'profeta_frame',   label: 'Profeta',          emoji: '🔮', category: 'special', cssClass: 'frame-profeta',         previewColor: '#a855f7', unlock: 'Nivel 25' },
+  { id: 'rey',             label: 'Rey',              emoji: '👑', category: 'special', cssClass: 'frame-rey',             previewColor: '#fbbf24', unlock: 'Nivel 35' },
+  { id: 'leyenda',         label: 'Leyenda',          emoji: '🌈', category: 'special', cssClass: 'frame-leyenda',         previewColor: '#ec4899', unlock: 'Nivel 45' },
 ]
 
 export const BASIC_FRAMES   = FRAMES.filter(f => f.category === 'basic')

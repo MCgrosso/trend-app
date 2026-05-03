@@ -34,12 +34,17 @@ export const AVATARS: Record<string, Avatar> = {
   avatar_abraham:  { emoji: '⭐', bg: '#7e22ce', label: 'Abraham',  image: '/avatar_abraham.png',  chapterUnlock: { book: 'Génesis', chapter: 12 } },
   // Avatar especial desbloqueable por completar los 7 días del evento Valle de Elá
   avatar_david:    { emoji: '👑', bg: '#fbbf24', label: 'David',    image: '/avatar_david.png',    eventUnlock: 'valle_ela_complete' },
+  // Avatares desbloqueables por nivel (sin imagen, solo emoji)
+  avatar_pergamino:{ emoji: '📜', bg: '#1e40af', label: 'Pergamino' },
+  avatar_corona:   { emoji: '👑', bg: '#ca8a04', label: 'Corona Real' },
+  avatar_angel:    { emoji: '😇', bg: '#f8fafc', label: 'Ángel' },
 }
 
 const SPECIAL_IDS = new Set([
   'guerrero', 'profeta', 'apostol', 'campeon',
   'avatar_moises', 'avatar_adan', 'avatar_eva', 'avatar_abel', 'avatar_abraham',
   'avatar_david',
+  'avatar_pergamino', 'avatar_corona', 'avatar_angel',
 ])
 
 export const AVATAR_LIST = Object.entries(AVATARS)
@@ -69,5 +74,9 @@ export const SPECIAL_AVATARS: SpecialAvatar[] = [
   { id: 'avatar_abel',    emoji: '🐑', bg: '#475569', label: 'Abel',    description: 'Completá Génesis 4',  image: '/avatar_abel.png',    chapterUnlock: { book: 'Génesis', chapter: 4  } },
   { id: 'avatar_abraham', emoji: '⭐', bg: '#7e22ce', label: 'Abraham', description: 'Completá Génesis 12', image: '/avatar_abraham.png', chapterUnlock: { book: 'Génesis', chapter: 12 } },
   // Evento Valle de Elá
-  { id: 'avatar_david',   emoji: '👑', bg: '#fbbf24', label: 'David',   description: 'Completá los 7 días del Valle de Elá', image: '/avatar_david.png',   eventUnlock: 'valle_ela_complete' },
+  { id: 'avatar_david',     emoji: '👑', bg: '#fbbf24', label: 'David',      description: 'Completá los 7 días del Valle de Elá', image: '/avatar_david.png', eventUnlock: 'valle_ela_complete' },
+  // Avatares por nivel
+  { id: 'avatar_pergamino', emoji: '📜', bg: '#1e40af', label: 'Pergamino',  description: 'Alcanzá el nivel 10' },
+  { id: 'avatar_corona',    emoji: '👑', bg: '#ca8a04', label: 'Corona Real', description: 'Alcanzá el nivel 30' },
+  { id: 'avatar_angel',     emoji: '😇', bg: '#f8fafc', label: 'Ángel',       description: 'Alcanzá el nivel 50' },
 ]

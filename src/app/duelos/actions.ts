@@ -42,7 +42,7 @@ export async function searchInterChurchOpponent(username: string) {
   return { error: null, data }
 }
 
-export async function createDuel(opponentId: string, challengerCategories: string[]) {
+export async function createDuel(opponentId: string, challengerCategories: string[], isRanked: boolean = true) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'No autenticado', duelId: null }
@@ -71,6 +71,7 @@ export async function createDuel(opponentId: string, challengerCategories: strin
       status: 'pending',
       categories: challengerCategories,
       is_inter_church: isInterChurch,
+      is_ranked: isRanked,
     })
     .select('id')
     .single()
@@ -79,7 +80,7 @@ export async function createDuel(opponentId: string, challengerCategories: strin
     console.log('[createDuel] insert error:', error)
     return { error: error.message, duelId: null }
   }
-  console.log('[createDuel] inserted duel', duel.id, 'challenger=', user.id, 'opponent=', opponentId, 'interChurch=', isInterChurch)
+  console.log('[createDuel] inserted duel', duel.id, 'isRanked=', isRanked, 'interChurch=', isInterChurch)
   return { error: null, duelId: duel.id }
 }
 
@@ -97,6 +98,13 @@ export async function acceptDuel(duelId: string, opponentCategories: string[]) {
     .single()
 
   if (fetchErr || !duel) return { error: 'Duelo no encontrado' }
+
+  // Si el duelo es rankeado, el oponente tiene que pagar 1 de energía para aceptar.
+  // (El challenger NO paga al crear — solo cuenta la jugada efectiva al aceptar.)
+  if (duel.is_ranked !== false) {
+    const { data: ok } = await supabase.rpc('consume_energy', { p_user_id: user.id })
+    if (!ok) return { error: 'Sin energía. Esperá a que se recargue para aceptar duelos rankeados.' }
+  }
 
   // Merge categories: challenger's 2 + opponent's 2 + 1 random from remainder
   const challengerCats: string[] = duel.categories ?? []
