@@ -298,6 +298,17 @@ export default function AvatarSection({
               {SPECIAL_BGS.map(b => {
                 const unlocked = unlockedBgs.includes(b.id)
                 const active   = selectedBg === b.id
+                const hasImage = !!b.image
+                // Solo aplicamos cssClass cuando NO tenemos imagen (los GIF/PNG
+                // van como background-image inline). El render del GIF queda
+                // gateado al tab 'fondo' (la sección entera está condicional),
+                // así que se carga solo al abrir esta pestaña.
+                const swatchClass = !unlocked
+                  ? 'bg-gray-800 opacity-25 grayscale'
+                  : `${hasImage ? '' : b.cssClass} ${active ? 'scale-110 ring-4 ring-white/80' : 'opacity-80 hover:opacity-100 hover:scale-105 ring-2 ring-white/20'}`
+                const swatchStyle: React.CSSProperties | undefined = unlocked && hasImage
+                  ? { backgroundImage: `url('${b.image}')`, backgroundSize: 'cover', backgroundPosition: 'center' }
+                  : undefined
                 return (
                   <button
                     key={b.id}
@@ -307,13 +318,10 @@ export default function AvatarSection({
                     className="flex flex-col items-center gap-2 focus:outline-none"
                   >
                     <div
-                      className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl transition-all duration-150 overflow-hidden relative ${
-                        !unlocked
-                          ? 'bg-gray-800 opacity-25 grayscale'
-                          : `${b.cssClass} ${active ? 'scale-110 ring-4 ring-white/80' : 'opacity-80 hover:opacity-100 hover:scale-105 ring-2 ring-white/20'}`
-                      }`}
+                      className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl transition-all duration-150 overflow-hidden relative ${swatchClass}`}
+                      style={swatchStyle}
                     >
-                      <span className="relative z-10">{!unlocked ? '🔒' : active ? '✓' : b.emoji}</span>
+                      <span className="relative z-10 drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]">{!unlocked ? '🔒' : active ? '✓' : b.emoji}</span>
                     </div>
                     <div className="text-center">
                       <p className={`text-[11px] font-medium leading-tight ${
@@ -322,7 +330,7 @@ export default function AvatarSection({
                         {b.emoji} {b.label}
                       </p>
                       {!unlocked && (
-                        <p className="text-[10px] text-gray-600 leading-tight mt-0.5">{b.unlock}</p>
+                        <p className="text-[10px] text-gray-600 leading-tight mt-0.5">{b.unlock} requerido</p>
                       )}
                     </div>
                   </button>

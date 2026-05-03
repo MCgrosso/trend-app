@@ -25,11 +25,29 @@ export default function Avatar({
   bg?: string | null
 }) {
   const s = sizes[size]
-  const avatar = avatarUrl ? AVATARS[avatarUrl] : null
+  const avatar     = avatarUrl ? AVATARS[avatarUrl] : null
   const frameClass = frame ? (FRAME_MAP[frame]?.cssClass ?? '') : ''
-  const bgClass = bg ? (BG_MAP[bg]?.cssClass ?? '') : ''
-  // When a custom bg is picked, it takes precedence over the avatar's default emoji bg color
-  const useCustomBg = Boolean(bgClass)
+  const bgEntry    = bg ? BG_MAP[bg] ?? null : null
+  const hasImageBg = !!bgEntry?.image
+  const bgClass    = bgEntry?.cssClass ?? ''
+  // Cuando el bg trae imagen o tiene cssClass propia, NO aplicamos el color
+  // por defecto del avatar (queremos que se vea el bg elegido).
+  const useCustomBg = Boolean(bgClass) || hasImageBg
+
+  // Estilos inline para el background del círculo. Los gif/png se aplican
+  // directamente con backgroundImage; los avatares emoji por defecto usan
+  // su color sólido si no hay bg custom.
+  const bgInlineStyle: React.CSSProperties | undefined = hasImageBg
+    ? {
+        backgroundImage:    `url('${bgEntry!.image}')`,
+        backgroundSize:     'cover',
+        backgroundPosition: 'center',
+      }
+    : useCustomBg
+      ? undefined
+      : avatar
+        ? { backgroundColor: avatar.bg }
+        : undefined
 
   if (avatar) {
     // PNG-based avatar (e.g. story-mode unlocks): render circular image
@@ -37,7 +55,7 @@ export default function Avatar({
       return (
         <div
           className={`${s.outer} relative rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden ${bgClass} ${frameClass} ${className}`}
-          style={useCustomBg ? undefined : { backgroundColor: avatar.bg }}
+          style={bgInlineStyle}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -52,18 +70,20 @@ export default function Avatar({
     return (
       <div
         className={`${s.outer} relative rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden ${bgClass} ${frameClass} ${className}`}
-        style={useCustomBg ? undefined : { backgroundColor: avatar.bg }}
+        style={bgInlineStyle}
       >
         <span className={`relative z-10 ${s.emoji}`}>{avatar.emoji}</span>
       </div>
     )
   }
 
+  // Letra de fallback. Si hay bg custom o imagen, no aplicamos el gradient default.
   return (
     <div
       className={`${s.outer} relative rounded-full flex items-center justify-center text-white flex-shrink-0 overflow-hidden ${
         useCustomBg ? bgClass : 'bg-gradient-to-br from-purple-500 to-blue-500'
       } ${frameClass} ${className}`}
+      style={bgInlineStyle}
     >
       <span className={`relative z-10 ${s.text}`}>{firstName?.[0]?.toUpperCase() ?? '?'}</span>
     </div>

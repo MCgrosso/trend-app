@@ -380,6 +380,13 @@ export default async function ProfilePage() {
                     </div>
                   </div>
                 )}
+
+                <Link
+                  href="/niveles"
+                  className="mt-3 w-full inline-flex items-center justify-center gap-1.5 bg-purple-600/30 hover:bg-purple-600/50 border border-purple-500/40 text-purple-100 text-xs font-medium py-2 rounded-xl transition-colors"
+                >
+                  Ver progresión completa →
+                </Link>
               </div>
             </div>
           )
