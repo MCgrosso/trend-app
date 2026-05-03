@@ -5,19 +5,6 @@ import { FRAME_MAP } from '@/lib/frames'
 import { BG_MAP } from '@/lib/avatarBackgrounds'
 import { getTitle } from '@/lib/titles'
 
-// Mapping de id de título → color hex para el badge en la tarjeta
-// (Title.color guarda Tailwind classes que no sirven en inline styles).
-const TITLE_HEX: Record<string, string> = {
-  novato:    '#9ca3af',
-  aprendiz:  '#34d399',
-  guerrero:  '#fbbf24',
-  profeta:   '#a78bfa',
-  campeon:   '#f97316',
-  leyenda:   '#06b6d4',
-  invencible:'#ec4899',
-  rey:       '#fde047',
-}
-
 export type ShareCardData = {
   username:   string
   first_name: string
@@ -35,10 +22,21 @@ export type ShareCardData = {
   favorite_verse_ref: string
 }
 
-// Tarjeta 800x450 que se renderiza off-screen y se captura con html2canvas-pro.
-// Evita variables CSS y usa colores hex directos para máxima compatibilidad
-// con el motor de captura. Las animaciones de marco y los GIFs se congelan
-// como un cuadro fijo en el PNG resultante (comportamiento esperado).
+// Hex colors per title id (Title.color guarda Tailwind classes)
+const TITLE_HEX: Record<string, string> = {
+  novato:    '#9ca3af',
+  aprendiz:  '#34d399',
+  guerrero:  '#fbbf24',
+  profeta:   '#a78bfa',
+  campeon:   '#f97316',
+  leyenda:   '#06b6d4',
+  invencible:'#ec4899',
+  rey:       '#fde047',
+}
+
+// Tarjeta 800x450 con layout en flexbox columnas. Sin posicionamiento absoluto
+// salvo el badge "NIV." que cuelga del avatar. Cada bloque tiene su renglón
+// dedicado para evitar superposiciones cuando html2canvas-pro hace el snapshot.
 export default function ShareCard({
   data, churchEmoji, churchName, clan, completedChapters,
 }: {
@@ -53,7 +51,6 @@ export default function ShareCard({
   const frame  = data.frame ? FRAME_MAP[data.frame] : null
   const bg     = data.avatar_bg ? BG_MAP[data.avatar_bg] : null
 
-  // Render del avatar (150px). Maneja imagen PNG, GIF bg, color sólido.
   const avatarBgStyle: React.CSSProperties = bg?.image
     ? { backgroundImage: `url('${bg.image}')`, backgroundSize: 'cover', backgroundPosition: 'center' }
     : avatar
@@ -61,14 +58,19 @@ export default function ShareCard({
       : { backgroundColor: '#7c3aed' }
 
   const frameBoxShadow = frame?.previewColor
-    ? `0 0 0 5px ${frame.previewColor}, 0 0 24px 6px ${frame.previewColor}99`
+    ? `0 0 0 4px ${frame.previewColor}, 0 0 18px 4px ${frame.previewColor}99`
     : '0 0 0 4px #7c3aed, 0 0 18px 4px rgba(124,58,237,0.5)'
+
+  const titleHex = TITLE_HEX[title.id] ?? '#a78bfa'
+  const fullName = `${(data.first_name || '').toUpperCase()} ${(data.last_name || '').toUpperCase()}`.trim()
 
   return (
     <div
       style={{
         width: 800,
         height: 450,
+        boxSizing: 'border-box',
+        padding: '20px 24px',
         position: 'relative',
         overflow: 'hidden',
         borderRadius: 24,
@@ -76,9 +78,12 @@ export default function ShareCard({
         boxShadow: 'inset 0 0 60px rgba(124,58,237,0.35), 0 0 0 4px #fbbf24, 0 0 32px rgba(251,191,36,0.45)',
         fontFamily: 'system-ui, -apple-system, sans-serif',
         color: '#ffffff',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 14,
       }}
     >
-      {/* Estrellitas decorativas (puntos blancos pseudo-aleatorios) */}
+      {/* Estrellitas decorativas como capa de fondo */}
       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
         {STAR_POSITIONS.map((s, i) => (
           <span
@@ -93,141 +98,174 @@ export default function ShareCard({
         ))}
       </div>
 
-      {/* Logo arriba-izquierda */}
-      <div style={{ position: 'absolute', top: 18, left: 22 }}>
-        <span style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 28, letterSpacing: 1, color: '#22d3ee', textShadow: '0 0 12px rgba(34,211,238,0.7)' }}>
+      {/* ─── Header: logo izquierda, URL derecha ─── */}
+      <div style={{
+        position: 'relative', zIndex: 1,
+        display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+        height: 24,
+      }}>
+        <span style={{
+          fontFamily: 'Bebas Neue, sans-serif',
+          fontSize: 26, letterSpacing: 1.5,
+          color: '#22d3ee',
+          textShadow: '0 0 12px rgba(34,211,238,0.7)',
+          lineHeight: 1,
+        }}>
           #TREND
         </span>
-        <span style={{ marginLeft: 6, fontSize: 11, color: '#c4b5fd' }}>· Bible Trivia</span>
+        <span style={{ fontSize: 11, color: '#9ca3af' }}>
+          trend-app-five.vercel.app
+        </span>
       </div>
 
-      {/* URL footer */}
-      <div style={{ position: 'absolute', bottom: 14, right: 22, fontSize: 11, color: '#9ca3af' }}>
-        Jugá en <span style={{ color: '#fde047' }}>trend-app-five.vercel.app</span>
-      </div>
-
-      {/* Avatar grande izquierda */}
-      <div style={{ position: 'absolute', top: 70, left: 40 }}>
-        <div
-          style={{
-            width: 150, height: 150, borderRadius: '50%',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            overflow: 'hidden', position: 'relative',
-            boxShadow: frameBoxShadow,
-            ...avatarBgStyle,
-          }}
-        >
-          {avatar?.image ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={avatar.image} alt="avatar" crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          ) : avatar ? (
-            <span style={{ fontSize: 84, lineHeight: 1 }}>{avatar.emoji}</span>
-          ) : (
-            <span style={{ fontSize: 64, fontWeight: 'bold', color: '#fff' }}>
-              {data.first_name?.[0]?.toUpperCase() ?? '?'}
-            </span>
-          )}
-        </div>
-
-        {/* Badge de nivel debajo del avatar */}
-        <div
-          style={{
-            position: 'absolute', bottom: -10, left: '50%', transform: 'translateX(-50%)',
-            background: 'linear-gradient(to bottom, #fbbf24, #d97706)',
-            color: '#1c1917',
-            fontFamily: 'Bebas Neue, sans-serif', fontSize: 18, letterSpacing: 1,
-            padding: '4px 14px', borderRadius: 999,
-            boxShadow: '0 4px 12px rgba(251,191,36,0.5), 0 0 0 2px rgba(0,0,0,0.4)',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          NIV. {data.level}
-        </div>
-      </div>
-
-      {/* Bloque derecho: nombre, username, título, iglesia/clan */}
-      <div style={{ position: 'absolute', top: 60, left: 220, right: 30 }}>
-        <p style={{
-          fontFamily: 'Bebas Neue, sans-serif', fontSize: 44, lineHeight: 1, margin: 0,
-          color: '#ffffff', textShadow: '0 2px 10px rgba(0,0,0,0.7)',
-          overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
-        }}>
-          {(data.first_name || '').toUpperCase()} {(data.last_name || '').toUpperCase()}
-        </p>
-        <p style={{ color: '#67e8f9', fontSize: 16, margin: '4px 0 0 0' }}>@{data.username}</p>
-
-        {/* Título + iglesia + clan en línea */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
-          <span
+      {/* ─── Bloque principal: avatar a la izquierda, info a la derecha ─── */}
+      <div style={{
+        position: 'relative', zIndex: 1,
+        display: 'flex', gap: 22, alignItems: 'flex-start',
+      }}>
+        {/* Avatar + badge NIV */}
+        <div style={{ width: 150, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+          <div
             style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              padding: '4px 12px', borderRadius: 999,
-              border: `2px solid ${TITLE_HEX[title.id] ?? '#a78bfa'}`,
-              background: 'rgba(0,0,0,0.4)',
-              color: TITLE_HEX[title.id] ?? '#fff',
-              fontSize: 13, fontWeight: 700,
+              width: 140, height: 140, borderRadius: '50%',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              overflow: 'hidden',
+              boxShadow: frameBoxShadow,
+              ...avatarBgStyle,
             }}
           >
-            ⚔️ {title.label}
-          </span>
-          {churchName && (
-            <span style={{
-              display: 'inline-flex', alignItems: 'center', gap: 4,
-              background: 'rgba(245,158,11,0.18)', border: '1px solid rgba(251,191,36,0.55)',
-              color: '#fde68a', padding: '3px 10px', borderRadius: 999, fontSize: 12, fontWeight: 600,
-            }}>
-              <span style={{ fontSize: 14 }}>{churchEmoji ?? '⛪'}</span>
-              {churchName}
-            </span>
-          )}
-          {clan && (
-            <span style={{
-              display: 'inline-flex', alignItems: 'center', gap: 4,
-              background: 'rgba(124,58,237,0.2)', border: `1px solid ${clan.shield_color ?? '#a78bfa'}`,
-              color: '#e9d5ff', padding: '3px 10px', borderRadius: 999, fontSize: 12, fontWeight: 600,
-            }}>
-              <span style={{ fontSize: 14 }}>{clan.shield_icon ?? '⚔️'}</span>
-              {clan.name}
-            </span>
-          )}
+            {avatar?.image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={avatar.image} alt="avatar" crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : avatar ? (
+              <span style={{ fontSize: 78, lineHeight: 1 }}>{avatar.emoji}</span>
+            ) : (
+              <span style={{ fontSize: 60, fontWeight: 'bold', color: '#fff' }}>
+                {data.first_name?.[0]?.toUpperCase() ?? '?'}
+              </span>
+            )}
+          </div>
+          {/* Badge NIV debajo (en flujo, no superpuesto) */}
+          <div
+            style={{
+              background: 'linear-gradient(to bottom, #fbbf24, #d97706)',
+              color: '#1c1917',
+              fontFamily: 'Bebas Neue, sans-serif', fontSize: 16, letterSpacing: 1,
+              padding: '3px 14px', borderRadius: 999,
+              boxShadow: '0 4px 10px rgba(251,191,36,0.45)',
+              whiteSpace: 'nowrap',
+              lineHeight: 1.2,
+            }}
+          >
+            NIV. {data.level}
+          </div>
         </div>
 
-        {/* Stats: 4 cards horizontales */}
-        <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-          <StatBox icon="🏆" label="Puntaje" value={data.total_score} accent="#fde047" />
-          <StatBox icon="⚔️" label="Victorias" value={data.wins} accent="#86efac" />
-          <StatBox icon="📖" label="Capítulos" value={completedChapters} accent="#fcd34d" />
-          <StatBox icon="🔥" label="Racha" value={data.streak_days} accent="#fb923c" />
-        </div>
-
-        {/* Bio + versículo favorito */}
-        {data.bio && data.bio.trim() !== '' && (
+        {/* Info derecha — flex column con renglones bien separados */}
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {/* Renglón 1: Nombre */}
           <p style={{
-            marginTop: 14, color: '#e9d5ff', fontSize: 13, fontStyle: 'italic',
-            fontFamily: 'Georgia, serif', lineHeight: 1.4,
-            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+            margin: 0,
+            fontFamily: 'Bebas Neue, sans-serif',
+            fontSize: 34, lineHeight: 1.05,
+            color: '#ffffff',
+            textShadow: '0 2px 8px rgba(0,0,0,0.7)',
+            overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
           }}>
-            &ldquo;{data.bio}&rdquo;
+            {fullName || '—'}
           </p>
+
+          {/* Renglón 2: Username */}
+          <p style={{
+            margin: 0,
+            color: '#67e8f9', fontSize: 14, lineHeight: 1.2,
+            overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
+          }}>
+            @{data.username || 'jugador'}
+          </p>
+
+          {/* Renglón 3: Badges (título / iglesia / clan) — wrap permitido */}
+          <div style={{
+            display: 'flex', flexWrap: 'wrap', gap: 6,
+            marginTop: 4,
+          }}>
+            <Badge color={titleHex} bg="rgba(0,0,0,0.45)">⚔️ {title.label}</Badge>
+            {churchName && (
+              <Badge color="#fde68a" border="rgba(251,191,36,0.55)" bg="rgba(245,158,11,0.18)">
+                {(churchEmoji ?? '⛪') + ' ' + churchName}
+              </Badge>
+            )}
+            {clan && (
+              <Badge color="#e9d5ff" border={clan.shield_color ?? '#a78bfa'} bg="rgba(124,58,237,0.2)">
+                {(clan.shield_icon ?? '⚔️') + ' ' + clan.name}
+              </Badge>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ─── Stats: 4 cards en una sola fila ─── */}
+      <div style={{
+        position: 'relative', zIndex: 1,
+        display: 'flex', gap: 10,
+      }}>
+        <StatBox icon="🏆" label="Puntaje"   value={data.total_score}    accent="#fde047" />
+        <StatBox icon="⚔️" label="Victorias" value={data.wins}            accent="#86efac" />
+        <StatBox icon="📖" label="Capítulos" value={completedChapters}    accent="#fcd34d" />
+        <StatBox icon="🔥" label="Racha"     value={data.streak_days}     accent="#fb923c" />
+      </div>
+
+      {/* ─── Bio + Versículo: bloque inferior con espacio garantizado ─── */}
+      <div style={{
+        position: 'relative', zIndex: 1,
+        display: 'flex', gap: 10,
+        flex: 1, minHeight: 0,
+      }}>
+        {data.bio && data.bio.trim() !== '' && (
+          <div style={{
+            flex: 1, minWidth: 0,
+            background: 'rgba(124,58,237,0.15)',
+            border: '1px solid rgba(167,139,250,0.4)',
+            borderRadius: 10, padding: '8px 12px',
+            display: 'flex', alignItems: 'center',
+          }}>
+            <p style={{
+              margin: 0, color: '#e9d5ff', fontSize: 12, fontStyle: 'italic',
+              fontFamily: 'Georgia, serif', lineHeight: 1.4,
+              display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+            }}>
+              &ldquo;{data.bio}&rdquo;
+            </p>
+          </div>
         )}
         {data.favorite_verse && data.favorite_verse.trim() !== '' && (
           <div style={{
-            marginTop: 10,
-            background: 'rgba(180,83,9,0.15)', border: '1px solid rgba(251,191,36,0.4)',
-            borderRadius: 10, padding: '6px 10px',
+            flex: 1.4, minWidth: 0,
+            background: 'rgba(180,83,9,0.18)',
+            border: '1px solid rgba(251,191,36,0.45)',
+            borderRadius: 10, padding: '8px 12px',
           }}>
+            <div style={{
+              fontSize: 9, fontWeight: 700, letterSpacing: 1.2,
+              textTransform: 'uppercase', color: '#fbbf24', marginBottom: 2,
+            }}>
+              📖 Versículo favorito
+            </div>
             <p style={{
-              color: '#fde68a', fontSize: 12, fontStyle: 'italic',
-              fontFamily: 'Georgia, serif', lineHeight: 1.35, margin: 0,
-              display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+              margin: 0, color: '#fef3c7', fontSize: 12, fontStyle: 'italic',
+              fontFamily: 'Georgia, serif', lineHeight: 1.4,
+              display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden',
             }}>
               &ldquo;{data.favorite_verse}&rdquo;
-              {data.favorite_verse_ref && (
-                <span style={{ display: 'block', textAlign: 'right', color: 'rgba(253,230,138,0.8)', fontSize: 10, marginTop: 2, fontStyle: 'normal' }}>
-                  — {data.favorite_verse_ref}
-                </span>
-              )}
             </p>
+            {data.favorite_verse_ref && (
+              <p style={{
+                margin: '2px 0 0 0', textAlign: 'right',
+                color: 'rgba(253,230,138,0.85)', fontSize: 10, fontWeight: 600,
+              }}>
+                — {data.favorite_verse_ref}
+              </p>
+            )}
           </div>
         )}
       </div>
@@ -235,26 +273,55 @@ export default function ShareCard({
   )
 }
 
+function Badge({ children, color, border, bg }: {
+  children: React.ReactNode; color: string; border?: string; bg: string
+}) {
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center',
+      padding: '4px 10px', borderRadius: 999,
+      border: `1.5px solid ${border ?? color}`,
+      background: bg,
+      color,
+      fontSize: 12, fontWeight: 700,
+      whiteSpace: 'nowrap',
+      lineHeight: 1.2,
+      maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis',
+    }}>
+      {children}
+    </span>
+  )
+}
+
 function StatBox({ icon, label, value, accent }: { icon: string; label: string; value: number | string; accent: string }) {
   return (
     <div style={{
       flex: 1,
-      background: 'rgba(15,10,46,0.7)',
+      background: 'rgba(15,10,46,0.75)',
       border: '1px solid rgba(124,58,237,0.4)',
-      borderRadius: 12, padding: '8px 6px', textAlign: 'center',
+      borderRadius: 12, padding: '8px 6px',
+      textAlign: 'center',
       minWidth: 0,
     }}>
       <div style={{ fontSize: 16, lineHeight: 1 }}>{icon}</div>
-      <div style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 22, color: accent, lineHeight: 1, marginTop: 4 }}>
+      <div style={{
+        fontFamily: 'Bebas Neue, sans-serif',
+        fontSize: 22, color: accent,
+        lineHeight: 1, marginTop: 4,
+      }}>
         {value}
       </div>
-      <div style={{ fontSize: 9, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 1, marginTop: 2 }}>{label}</div>
+      <div style={{
+        fontSize: 9, color: '#9ca3af',
+        textTransform: 'uppercase', letterSpacing: 1,
+        marginTop: 3,
+      }}>
+        {label}
+      </div>
     </div>
   )
 }
 
-// Posiciones fijas de estrellas (no random para que el render sea determinístico
-// y el snapshot html2canvas no varíe entre invocaciones).
 const STAR_POSITIONS: Array<{ x: number; y: number; size: number; o: number }> = [
   { x:  4, y: 12, size: 2, o: 0.9 },
   { x: 12, y: 36, size: 1, o: 0.6 },
