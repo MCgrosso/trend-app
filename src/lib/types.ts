@@ -27,6 +27,8 @@ export interface Profile {
   energy_last_recharge: string
   ranked_wins: number
   unranked_wins: number
+  favorite_verse: string | null
+  favorite_verse_ref: string | null
 }
 
 export interface Church {

@@ -8,7 +8,7 @@ import Logo from '@/components/Logo'
 import Avatar from '@/components/Avatar'
 import { getTitle } from '@/lib/titles'
 import { getMedal } from '@/lib/medals'
-import { ChevronLeft, Star, Flame, Swords, Trophy, Calendar, Scroll, MessageCircle, Eye, EyeOff } from 'lucide-react'
+import { ChevronLeft, Star, Flame, Swords, Trophy, Calendar, Scroll, MessageCircle, Eye, EyeOff, BookOpen } from 'lucide-react'
 import { toggleReflectionPublic } from '@/app/eventos/actions'
 import { getXpProgress } from '@/lib/xp'
 
@@ -32,6 +32,8 @@ interface ProfileRow {
   created_at: string
   xp?: number | null
   level?: number | null
+  favorite_verse?: string | null
+  favorite_verse_ref?: string | null
 }
 
 interface ChapterRow {
@@ -135,6 +137,23 @@ export default function PublicProfile({
                   <div className="flex items-start gap-2 bg-purple-950/40 border border-purple-700/40 rounded-2xl px-4 py-3 text-left">
                     <MessageCircle size={14} className="text-purple-400 flex-shrink-0 mt-0.5" />
                     <p className="text-purple-100 text-sm leading-relaxed italic">{profile.bio}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Versículo favorito */}
+              {profile.favorite_verse && profile.favorite_verse.trim() !== '' && (
+                <div className="mt-3 mx-auto max-w-md">
+                  <div className="bg-amber-900/15 border border-amber-700/30 rounded-2xl px-4 py-3 text-left">
+                    <p className="text-amber-300 text-[10px] uppercase tracking-widest font-bold flex items-center gap-1">
+                      <BookOpen size={11} /> Versículo favorito
+                    </p>
+                    <p className="text-amber-100 text-sm leading-snug mt-1" style={{ fontFamily: 'serif' }}>
+                      &ldquo;{profile.favorite_verse}&rdquo;
+                    </p>
+                    {profile.favorite_verse_ref && (
+                      <p className="text-amber-300/70 text-[11px] mt-1 text-right">— {profile.favorite_verse_ref}</p>
+                    )}
                   </div>
                 </div>
               )}

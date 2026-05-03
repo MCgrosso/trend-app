@@ -6,6 +6,9 @@ import LogoutButton from './LogoutButton'
 import AvatarSection from './AvatarSection'
 import BioEditor from './BioEditor'
 import ChurchSection from './ChurchSection'
+import EditModeWrapper from './EditModeWrapper'
+import FavoriteVerseEditor from './FavoriteVerseEditor'
+import ShareCardLauncher from './ShareCardLauncher'
 import { SPECIAL_AVATARS } from '@/lib/avatars'
 import { Star, Flame, Calendar, Shield, Swords, Trophy, Scroll, BookOpen, Zap } from 'lucide-react'
 import { getXpProgress } from '@/lib/xp'
@@ -294,6 +297,28 @@ export default async function ProfilePage() {
             <p className="text-cyan-300 text-sm mt-1">@{profile?.username}</p>
             <p className="text-gray-400 text-xs mt-1">{user.email}</p>
 
+            {/* Bio (vista pública) */}
+            {profile?.bio && (
+              <p className="mt-3 text-purple-100 text-sm italic px-2" style={{ fontFamily: 'serif' }}>
+                &ldquo;{profile.bio}&rdquo;
+              </p>
+            )}
+
+            {/* Versículo favorito */}
+            {profile?.favorite_verse && (
+              <div className="mt-3 mx-auto max-w-xs bg-amber-900/15 border border-amber-700/30 rounded-xl p-3 text-left">
+                <p className="text-amber-300 text-[10px] uppercase tracking-widest font-bold flex items-center gap-1">
+                  <BookOpen size={11} /> Versículo favorito
+                </p>
+                <p className="text-amber-100 text-sm leading-snug mt-1" style={{ fontFamily: 'serif' }}>
+                  &ldquo;{profile.favorite_verse}&rdquo;
+                </p>
+                {profile.favorite_verse_ref && (
+                  <p className="text-amber-300/70 text-[11px] mt-1 text-right">— {profile.favorite_verse_ref}</p>
+                )}
+              </div>
+            )}
+
             {/* Iglesia + clan */}
             {(myChurch || myClan) && (
               <div className="flex items-center justify-center flex-wrap gap-2 mt-3">
@@ -392,32 +417,70 @@ export default async function ProfilePage() {
           )
         })()}
 
-        {/* Personalizar avatar y marco */}
-        <div className="bg-[#0f0a2e]/80 border border-purple-700/40 rounded-2xl p-5 space-y-5">
-          <h3 className="font-bebas text-2xl text-white text-center leading-none">PERSONALIZAR PERFIL</h3>
+        {/* Acciones de perfil: editar / compartir tarjeta */}
+        <div className="space-y-2">
+          <EditModeWrapper>
+            <div className="bg-[#0f0a2e]/80 border border-purple-700/40 rounded-2xl p-5 space-y-5">
+              <h3 className="font-bebas text-2xl text-white text-center leading-none">PERSONALIZAR PERFIL</h3>
 
-          <BioEditor userId={user.id} initialBio={profile?.bio ?? ''} />
+              <BioEditor userId={user.id} initialBio={profile?.bio ?? ''} />
 
-          <ChurchSection
-            churches={approvedChurches}
-            clans={clansForMyChurch}
-            currentChurchId={profile?.church_id ?? null}
-            currentClanId={profile?.clan_id ?? null}
+              <FavoriteVerseEditor
+                userId={user.id}
+                initialVerse={profile?.favorite_verse ?? ''}
+                initialRef={profile?.favorite_verse_ref ?? ''}
+              />
+
+              <ChurchSection
+                churches={approvedChurches}
+                clans={clansForMyChurch}
+                currentChurchId={profile?.church_id ?? null}
+                currentClanId={profile?.clan_id ?? null}
+              />
+
+              <div className="border-t border-purple-800/40 pt-4">
+                <AvatarSection
+                  userId={user.id}
+                  avatarUrl={profile?.avatar_url ?? null}
+                  firstName={profile?.first_name ?? null}
+                  frame={profile?.frame ?? 'white'}
+                  avatarBg={profile?.avatar_bg ?? 'purple'}
+                  unlockedSpecial={unlockedSpecial}
+                  unlockedFrames={unlockedFrames}
+                  unlockedEventFrames={unlockedEventFrames}
+                  unlockedBgs={unlockedBgs}
+                />
+              </div>
+            </div>
+          </EditModeWrapper>
+
+          <ShareCardLauncher
+            profile={{
+              username: profile?.username ?? '',
+              first_name: profile?.first_name ?? '',
+              last_name:  profile?.last_name  ?? '',
+              avatar_url: profile?.avatar_url ?? null,
+              frame:      profile?.frame      ?? null,
+              avatar_bg:  profile?.avatar_bg  ?? null,
+              title:      profile?.title      ?? null,
+              bio:        profile?.bio        ?? null,
+              total_score: profile?.total_score ?? 0,
+              wins:        profile?.wins ?? 0,
+              streak_days: profile?.streak_days ?? 0,
+              level:       profile?.level ?? 1,
+              favorite_verse:     profile?.favorite_verse     ?? '',
+              favorite_verse_ref: profile?.favorite_verse_ref ?? '',
+            }}
+            churchEmoji={myChurch?.icon_emoji ?? null}
+            churchName={myChurch?.name ?? null}
+            clan={myClan ? {
+              name: myClan.name,
+              shield_color: myClan.shield_color,
+              shield_bg:    myClan.shield_bg,
+              shield_icon:  myClan.shield_icon,
+            } : null}
+            completedChapters={completedChapters.length}
           />
-
-          <div className="border-t border-purple-800/40 pt-4">
-            <AvatarSection
-              userId={user.id}
-              avatarUrl={profile?.avatar_url ?? null}
-              firstName={profile?.first_name ?? null}
-              frame={profile?.frame ?? 'white'}
-              avatarBg={profile?.avatar_bg ?? 'purple'}
-              unlockedSpecial={unlockedSpecial}
-              unlockedFrames={unlockedFrames}
-              unlockedEventFrames={unlockedEventFrames}
-              unlockedBgs={unlockedBgs}
-            />
-          </div>
         </div>
 
         {/* Medalla semanal */}
