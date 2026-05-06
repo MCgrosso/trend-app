@@ -19,6 +19,34 @@ export default async function RankingPage() {
   const { data: weeklyAll } = await supabase.rpc('get_weekly_ranking')
   const { data: churchRanking } = await supabase.rpc('get_church_ranking')
 
+  // PVP / Blitz / Dinámico ranking
+  const [
+    { data: pvpTop },
+    { data: blitzTop },
+    { data: dynamicTop },
+  ] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('id, username, first_name, last_name, avatar_url, frame, avatar_bg, pvp_rank, pvp_points, pvp_total_games, pvp_win_percentage, pvp_win_streak, pvp_best_streak, blitz_wins, dynamic_wins')
+      .gt('pvp_total_games', 0)
+      .order('pvp_points', { ascending: false })
+      .limit(20),
+    supabase
+      .from('profiles')
+      .select('id, username, first_name, last_name, avatar_url, frame, avatar_bg, pvp_rank, blitz_wins, blitz_best_score')
+      .gt('blitz_wins', 0)
+      .order('blitz_best_score', { ascending: false })
+      .order('blitz_wins', { ascending: false })
+      .limit(20),
+    supabase
+      .from('profiles')
+      .select('id, username, first_name, last_name, avatar_url, frame, avatar_bg, pvp_rank, dynamic_wins, dynamic_best_time')
+      .gt('dynamic_wins', 0)
+      .order('dynamic_best_time', { ascending: false })
+      .order('dynamic_wins', { ascending: false })
+      .limit(20),
+  ])
+
   // Look up clans + churches referenced by the top 10 so the client can render shields/badges
   const clanIds   = Array.from(new Set((globalTop10 ?? []).map(p => p.clan_id).filter(Boolean) as string[]))
   const churchIds = Array.from(new Set((globalTop10 ?? []).map(p => p.church_id).filter(Boolean) as string[]))
@@ -64,6 +92,9 @@ export default async function RankingPage() {
             globalTop10={globalTop10 ?? []}
             weeklyAll={weeklyAll ?? []}
             churchRanking={churchRanking ?? []}
+            pvpTop={pvpTop ?? []}
+            blitzTop={blitzTop ?? []}
+            dynamicTop={dynamicTop ?? []}
             clansLookup={clansLookup ?? []}
             churchesLookup={churchesLookup ?? []}
             userId={user?.id ?? null}

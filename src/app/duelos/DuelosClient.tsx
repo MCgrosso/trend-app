@@ -508,7 +508,7 @@ export default function DuelosClient({ userId, profile, duels, dailyCount, chall
       <header className="px-4 pt-8 pb-4 max-w-lg mx-auto flex items-center justify-between">
         <div className="flex items-center gap-2 flex-wrap">
           <Swords size={22} className="text-purple-400" />
-          <h1 className="text-xl font-bold text-white">Duelos PVP</h1>
+          <h1 className="text-xl font-bold text-white">Duelos</h1>
           {isAmbassador && (
             <span
               title="Embajador: el jugador de tu iglesia con más victorias inter-iglesias"
@@ -528,6 +528,21 @@ export default function DuelosClient({ userId, profile, duels, dailyCount, chall
       </header>
 
       <div className="px-4 max-w-lg mx-auto space-y-4 pb-8">
+
+        {/* Top-level tabs: Clásico / Contrarreloj */}
+        <div className="flex gap-1 p-1 bg-[#0f0a2e]/80 rounded-xl border border-purple-700/40">
+          <button
+            className="flex-1 py-2 rounded-lg text-xs font-bold uppercase tracking-wider bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-[0_0_12px_rgba(124,58,237,0.5)]"
+          >
+            ⚔️ Clásico
+          </button>
+          <Link
+            href="/duelos/contrarreloj"
+            className="flex-1 py-2 rounded-lg text-xs font-bold uppercase tracking-wider text-gray-400 hover:text-white text-center"
+          >
+            ⚡ Contrarreloj
+          </Link>
+        </div>
 
         {/* Scope tabs */}
         <div className="flex gap-1 p-1 bg-[#0f0a2e]/80 rounded-xl border border-purple-700/40">

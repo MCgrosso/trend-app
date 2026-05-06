@@ -7,7 +7,8 @@ export default async function NotificationBellServer({ userId }: { userId: strin
   const [{ data: items }, { data: reads }] = await Promise.all([
     supabase
       .from('notifications')
-      .select('id, title, message, type, created_at')
+      .select('id, title, message, type, created_at, user_id')
+      .or(`user_id.is.null,user_id.eq.${userId}`)
       .order('created_at', { ascending: false })
       .limit(30),
     supabase

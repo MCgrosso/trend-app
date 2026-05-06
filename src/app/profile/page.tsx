@@ -10,9 +10,10 @@ import EditModeWrapper from './EditModeWrapper'
 import FavoriteVerseEditor from './FavoriteVerseEditor'
 import ShareCardLauncher from './ShareCardLauncher'
 import { SPECIAL_AVATARS } from '@/lib/avatars'
-import { Star, Flame, Calendar, Shield, Swords, Trophy, Scroll, BookOpen, Zap } from 'lucide-react'
+import { Star, Flame, Calendar, Shield, Swords, Trophy, Scroll, BookOpen, Zap, Timer, Hourglass } from 'lucide-react'
 import { getXpProgress } from '@/lib/xp'
 import { getNextReward } from '@/lib/levelRewards'
+import { getRankProgress, getRank } from '@/lib/pvpRanks'
 import Logo from '@/components/Logo'
 import Stars from '@/components/Stars'
 import Avatar from '@/components/Avatar'
@@ -236,6 +237,22 @@ export default async function ProfilePage() {
   // Total Bible chapters approximation (OT + NT = 1189)
   const BIBLE_TOTAL_CHAPTERS = 1189
   const biblePct = Math.round((completedChapters.length / BIBLE_TOTAL_CHAPTERS) * 10000) / 100
+
+  // ── PVP contrarreloj: últimos 5 duelos ──
+  const { data: blitzHistory } = await supabase
+    .from('blitz_duels')
+    .select(`
+      id, mode, status, winner_id, challenger_id, opponent_id,
+      challenger_score, opponent_score, challenger_time_survived, opponent_time_survived,
+      challenger_points_delta, opponent_points_delta,
+      finished_at, created_at,
+      challenger:profiles!blitz_duels_challenger_id_fkey(id, username, first_name, avatar_url, frame, avatar_bg, pvp_rank),
+      opponent:profiles!blitz_duels_opponent_id_fkey(id, username, first_name, avatar_url, frame, avatar_bg, pvp_rank)
+    `)
+    .or(`challenger_id.eq.${user.id},opponent_id.eq.${user.id}`)
+    .eq('status', 'finished')
+    .order('finished_at', { ascending: false })
+    .limit(5)
 
   // ── Iglesias y clanes ──
   const { data: approvedChurchesRaw } = await supabase
@@ -580,6 +597,114 @@ export default async function ProfilePage() {
             </div>
           )}
         </div>
+
+        {/* ── Estadísticas PVP Avanzadas ── */}
+        {(() => {
+          const rankProgress = getRankProgress(profile?.pvp_points ?? 0)
+          const r = rankProgress.current
+          const next = rankProgress.next
+          const totalPvpWins = (profile?.blitz_wins ?? 0) + (profile?.dynamic_wins ?? 0)
+          return (
+            <div className={`relative bg-gradient-to-br from-[#1a0a4e] via-[#0f0a2e] to-[#1a0a4e] rounded-2xl p-5 border ${r.borderColor} overflow-hidden`}>
+              <div className="absolute -top-8 -right-8 w-32 h-32 blur-2xl rounded-full pointer-events-none" style={{ background: r.glowColor }} />
+              <div className="relative">
+                <div className="flex items-center gap-2 mb-3">
+                  <Zap size={16} className={r.color} />
+                  <h3 className="font-semibold text-white">Estadísticas PVP Avanzadas</h3>
+                </div>
+
+                <div className="flex items-center gap-4 mb-4">
+                  <div className={`w-16 h-16 rounded-2xl border-2 ${r.borderColor} ${r.bgColor} flex items-center justify-center text-4xl ${r.shadow}`}>
+                    {r.icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className={`font-bebas text-3xl leading-none ${r.color} ${r.specialClass ?? ''}`}>{r.label}</p>
+                    <p className="text-gray-400 text-xs mt-0.5">{profile?.pvp_points ?? 0} puntos PVP</p>
+                  </div>
+                </div>
+
+                {/* Progress to next rank */}
+                {next && rankProgress.pointsToNext !== null ? (
+                  <div className="mb-4">
+                    <div className="flex justify-between text-xs mb-1.5">
+                      <span className="text-gray-400">Próximo: <span className={next.color}>{next.icon} {next.label}</span></span>
+                      <span className="text-gray-500">{rankProgress.pointsToNext} pts</span>
+                    </div>
+                    <div className="h-2 bg-black/40 rounded-full overflow-hidden border border-purple-700/30">
+                      <div
+                        className="h-full transition-all duration-700"
+                        style={{ width: `${rankProgress.progressPercent}%`, background: `linear-gradient(to right, ${r.glowColor}, ${getRank(next.id).glowColor})` }}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-cyan-300 text-xs font-bold mb-4">💎 Rango máximo alcanzado</p>
+                )}
+
+                {/* Stats grid */}
+                <div className="grid grid-cols-3 gap-2 mb-3">
+                  <div className="bg-black/30 border border-gray-700/40 rounded-xl p-2 text-center">
+                    <p className="text-[10px] text-gray-500 uppercase tracking-wider">Victorias</p>
+                    <p className="text-emerald-300 font-bebas text-2xl leading-none mt-0.5">{totalPvpWins}</p>
+                  </div>
+                  <div className="bg-black/30 border border-gray-700/40 rounded-xl p-2 text-center">
+                    <p className="text-[10px] text-gray-500 uppercase tracking-wider">% Victorias</p>
+                    <p className="text-cyan-300 font-bebas text-2xl leading-none mt-0.5">{profile?.pvp_win_percentage ?? 0}%</p>
+                  </div>
+                  <div className="bg-black/30 border border-gray-700/40 rounded-xl p-2 text-center">
+                    <p className="text-[10px] text-gray-500 uppercase tracking-wider">Mejor racha</p>
+                    <p className="text-amber-300 font-bebas text-2xl leading-none mt-0.5">{profile?.pvp_best_streak ?? 0}</p>
+                  </div>
+                </div>
+
+                {/* Mode breakdown */}
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="bg-purple-900/20 border border-purple-700/40 rounded-xl p-2">
+                    <p className="text-[9px] text-purple-300 uppercase tracking-wider flex items-center gap-1"><Swords size={9} /> Clásico</p>
+                    <p className="text-white text-xs mt-0.5">{profile?.ranked_wins ?? 0}V · {profile?.unranked_wins ?? 0} amistosas</p>
+                  </div>
+                  <div className="bg-orange-900/20 border border-orange-700/40 rounded-xl p-2">
+                    <p className="text-[9px] text-orange-300 uppercase tracking-wider flex items-center gap-1"><Timer size={9} /> Blitz</p>
+                    <p className="text-white text-xs mt-0.5">{profile?.blitz_wins ?? 0}V · top {profile?.blitz_best_score ?? 0}</p>
+                  </div>
+                  <div className="bg-cyan-900/20 border border-cyan-700/40 rounded-xl p-2">
+                    <p className="text-[9px] text-cyan-300 uppercase tracking-wider flex items-center gap-1"><Hourglass size={9} /> Dinámico</p>
+                    <p className="text-white text-xs mt-0.5">{profile?.dynamic_wins ?? 0}V · {profile?.dynamic_best_time ?? 0}s</p>
+                  </div>
+                </div>
+
+                {/* History */}
+                {blitzHistory && blitzHistory.length > 0 && (
+                  <div className="mt-4">
+                    <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-2 font-bold">Últimos duelos contrarreloj</p>
+                    <div className="space-y-1.5">
+                      {blitzHistory.map(d => {
+                        const isCh = d.challenger_id === user.id
+                        const opp = isCh ? d.opponent : d.challenger
+                        const oppArr = Array.isArray(opp) ? opp[0] : opp
+                        const myDelta = isCh ? d.challenger_points_delta : d.opponent_points_delta
+                        const won = d.winner_id === user.id
+                        const draw = !d.winner_id
+                        return (
+                          <div key={d.id} className="flex items-center gap-2 bg-black/25 border border-gray-700/30 rounded-lg px-2.5 py-1.5">
+                            <span className="text-base">{d.mode === 'blitz' ? '⚡' : '⏳'}</span>
+                            <span className="text-gray-300 text-xs flex-1 truncate">vs @{oppArr?.username ?? '?'}</span>
+                            <span className={`text-[10px] font-bold ${won ? 'text-emerald-300' : draw ? 'text-yellow-300' : 'text-red-300'}`}>
+                              {won ? 'V' : draw ? '=' : 'D'}
+                            </span>
+                            <span className={`text-xs font-bold tabular-nums ${(myDelta ?? 0) > 0 ? 'text-emerald-300' : (myDelta ?? 0) < 0 ? 'text-red-300' : 'text-gray-400'}`}>
+                              {(myDelta ?? 0) > 0 ? '+' : ''}{myDelta ?? 0}
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )
+        })()}
 
         {/* ── Mi viaje bíblico ── */}
         <div className="relative bg-gradient-to-br from-amber-900/30 to-yellow-900/20 border border-yellow-700/40 rounded-2xl p-5 overflow-hidden">

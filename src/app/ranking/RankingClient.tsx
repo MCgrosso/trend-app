@@ -2,10 +2,11 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Trophy, Star, Medal, Users } from 'lucide-react'
+import { Trophy, Star, Medal, Users, Zap, Hourglass, Timer } from 'lucide-react'
 import Avatar from '@/components/Avatar'
 import ClanShield from '@/components/ClanShield'
 import ChurchBadge from '@/components/ChurchBadge'
+import PvpRankBadge from '@/components/PvpRankBadge'
 import { getMedal } from '@/lib/medals'
 import type { WeeklyProfile, ChurchRankingRow } from '@/lib/types'
 
@@ -26,16 +27,44 @@ interface GlobalProfile {
 interface ClanLookup { id: string; name: string; shield_color: string | null; shield_bg: string | null; shield_icon: string | null }
 interface ChurchLookup { id: string; name: string; abbreviation: string | null; icon_emoji: string | null }
 
+interface PvpRow {
+  id: string; username: string; first_name: string; last_name: string
+  avatar_url: string | null; frame: string | null; avatar_bg: string | null
+  pvp_rank: string | null; pvp_points: number | null
+  pvp_total_games: number | null; pvp_win_percentage: number | null
+  pvp_win_streak: number | null; pvp_best_streak: number | null
+  blitz_wins: number | null; dynamic_wins: number | null
+}
+
+interface BlitzRow {
+  id: string; username: string; first_name: string; last_name: string
+  avatar_url: string | null; frame: string | null; avatar_bg: string | null
+  pvp_rank: string | null
+  blitz_wins: number | null; blitz_best_score: number | null
+}
+
+interface DynamicRow {
+  id: string; username: string; first_name: string; last_name: string
+  avatar_url: string | null; frame: string | null; avatar_bg: string | null
+  pvp_rank: string | null
+  dynamic_wins: number | null; dynamic_best_time: number | null
+}
+
 interface Props {
   globalTop10: GlobalProfile[]
   weeklyAll: WeeklyProfile[]
   churchRanking: ChurchRankingRow[]
+  pvpTop: PvpRow[]
+  blitzTop: BlitzRow[]
+  dynamicTop: DynamicRow[]
   clansLookup: ClanLookup[]
   churchesLookup: ChurchLookup[]
   userId: string | null
   userGlobalRank: number
   userGlobalProfile: GlobalProfile | null
 }
+
+type RankingTab = 'global' | 'semanal' | 'iglesias' | 'pvp' | 'blitz' | 'dinamico'
 
 function getMedalColor(rank: number) {
   if (rank === 1) return 'text-yellow-400'
@@ -53,13 +82,16 @@ export default function RankingClient({
   globalTop10,
   weeklyAll,
   churchRanking,
+  pvpTop,
+  blitzTop,
+  dynamicTop,
   clansLookup,
   churchesLookup,
   userId,
   userGlobalRank,
   userGlobalProfile,
 }: Props) {
-  const [tab, setTab] = useState<'global' | 'semanal' | 'iglesias'>('global')
+  const [tab, setTab] = useState<RankingTab>('global')
 
   const clanById   = new Map(clansLookup.map(c => [c.id, c]))
   const churchById = new Map(churchesLookup.map(c => [c.id, c]))
@@ -75,37 +107,13 @@ export default function RankingClient({
   return (
     <>
       {/* Tabs */}
-      <div className="flex gap-1 p-1 bg-[#0f0a2e]/80 rounded-xl border border-purple-700/40 mb-4">
-        <button
-          onClick={() => setTab('global')}
-          className={`flex-1 py-2 rounded-lg text-xs sm:text-sm font-bold uppercase tracking-wider transition-all ${
-            tab === 'global'
-              ? 'bg-gradient-to-r from-purple-600 to-purple-500 text-white shadow-[0_0_16px_rgba(124,58,237,0.5)]'
-              : 'text-gray-500 hover:text-white'
-          }`}
-        >
-          Global
-        </button>
-        <button
-          onClick={() => setTab('semanal')}
-          className={`flex-1 py-2 rounded-lg text-xs sm:text-sm font-bold uppercase tracking-wider transition-all ${
-            tab === 'semanal'
-              ? 'bg-gradient-to-r from-purple-600 to-purple-500 text-white shadow-[0_0_16px_rgba(124,58,237,0.5)]'
-              : 'text-gray-500 hover:text-white'
-          }`}
-        >
-          Semana
-        </button>
-        <button
-          onClick={() => setTab('iglesias')}
-          className={`flex-1 py-2 rounded-lg text-xs sm:text-sm font-bold uppercase tracking-wider transition-all ${
-            tab === 'iglesias'
-              ? 'bg-gradient-to-r from-emerald-600 to-cyan-600 text-white shadow-[0_0_16px_rgba(16,185,129,0.5)]'
-              : 'text-gray-500 hover:text-white'
-          }`}
-        >
-          Iglesias
-        </button>
+      <div className="flex flex-wrap gap-1 p-1 bg-[#0f0a2e]/80 rounded-xl border border-purple-700/40 mb-4">
+        <TabBtn active={tab === 'global'} onClick={() => setTab('global')} variant="purple">Global</TabBtn>
+        <TabBtn active={tab === 'semanal'} onClick={() => setTab('semanal')} variant="purple">Semana</TabBtn>
+        <TabBtn active={tab === 'iglesias'} onClick={() => setTab('iglesias')} variant="emerald">Iglesias</TabBtn>
+        <TabBtn active={tab === 'pvp'} onClick={() => setTab('pvp')} variant="amber">PVP</TabBtn>
+        <TabBtn active={tab === 'blitz'} onClick={() => setTab('blitz')} variant="orange">Blitz</TabBtn>
+        <TabBtn active={tab === 'dinamico'} onClick={() => setTab('dinamico')} variant="cyan">Dinámico</TabBtn>
       </div>
 
       {/* ── GLOBAL ── */}
@@ -318,6 +326,21 @@ export default function RankingClient({
         </>
       )}
 
+      {/* ── PVP ── */}
+      {tab === 'pvp' && (
+        <PvpTab rows={pvpTop} userId={userId} />
+      )}
+
+      {/* ── BLITZ ── */}
+      {tab === 'blitz' && (
+        <BlitzTab rows={blitzTop} userId={userId} />
+      )}
+
+      {/* ── DINÁMICO ── */}
+      {tab === 'dinamico' && (
+        <DynamicTab rows={dynamicTop} userId={userId} />
+      )}
+
       {!userId && tab !== 'iglesias' && (
         <div className="text-center py-4 bg-purple-900/20 rounded-xl border border-purple-700/30">
           <p className="text-gray-400 text-sm">
@@ -326,6 +349,187 @@ export default function RankingClient({
         </div>
       )}
     </>
+  )
+}
+
+function TabBtn({
+  active, onClick, variant, children,
+}: {
+  active: boolean; onClick: () => void
+  variant: 'purple' | 'emerald' | 'amber' | 'orange' | 'cyan'
+  children: React.ReactNode
+}) {
+  const activeStyle = {
+    purple:  'bg-gradient-to-r from-purple-600 to-purple-500 text-white shadow-[0_0_14px_rgba(124,58,237,0.5)]',
+    emerald: 'bg-gradient-to-r from-emerald-600 to-cyan-600 text-white shadow-[0_0_14px_rgba(16,185,129,0.5)]',
+    amber:   'bg-gradient-to-r from-amber-600 to-yellow-500 text-stone-900 shadow-[0_0_14px_rgba(245,158,11,0.5)]',
+    orange:  'bg-gradient-to-r from-orange-600 to-amber-500 text-white shadow-[0_0_14px_rgba(249,115,22,0.5)]',
+    cyan:    'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-[0_0_14px_rgba(34,211,238,0.5)]',
+  }[variant]
+  return (
+    <button
+      onClick={onClick}
+      className={`flex-1 min-w-[60px] py-2 rounded-lg text-[11px] sm:text-xs font-bold uppercase tracking-wider transition-all ${
+        active ? activeStyle : 'text-gray-500 hover:text-white'
+      }`}
+    >
+      {children}
+    </button>
+  )
+}
+
+function PvpTab({ rows, userId }: { rows: PvpRow[]; userId: string | null }) {
+  if (rows.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <Zap size={32} className="text-gray-600 mx-auto mb-2" />
+        <p className="text-gray-400 text-sm">Aún nadie jugó duelos contrarreloj</p>
+        <p className="text-gray-500 text-xs mt-1">Sé el primero en <Link href="/duelos/contrarreloj" className="text-purple-400 underline">/duelos/contrarreloj</Link></p>
+      </div>
+    )
+  }
+  return (
+    <div className="space-y-2">
+      {rows.map((p, i) => {
+        const isMe = p.id === userId
+        const top = i < 3
+        return (
+          <div
+            key={p.id}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 ${
+              isMe
+                ? 'bg-gradient-to-r from-purple-900/60 to-[#1a0a4e] border-purple-400/70 shadow-[0_0_18px_rgba(124,58,237,0.4)]'
+                : top
+                  ? 'bg-gradient-to-r from-amber-900/30 to-[#0f0a2e] border-amber-500/50'
+                  : 'bg-[#0f0a2e]/70 border-purple-800/30'
+            }`}
+          >
+            <div className="w-7 flex items-center justify-center flex-shrink-0">
+              {top ? <span className="text-lg">{['🥇','🥈','🥉'][i]}</span> : <span className="text-gray-400 text-xs font-bold">#{i+1}</span>}
+            </div>
+            <Link href={`/perfil/${p.username}`} className="flex items-center gap-3 flex-1 min-w-0 group">
+              <Avatar avatarUrl={p.avatar_url} firstName={p.first_name} size="sm" frame={p.frame} bg={p.avatar_bg} />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <p className={`font-semibold truncate ${isMe ? 'text-purple-200' : 'text-white'} group-hover:text-cyan-300`}>
+                    {p.first_name} {p.last_name}
+                    {isMe && <span className="text-purple-400 text-xs ml-2">(vos)</span>}
+                  </p>
+                  <PvpRankBadge rank={p.pvp_rank} size="xs" />
+                </div>
+                <p className="text-gray-400 text-xs">
+                  @{p.username} · {(p.blitz_wins ?? 0) + (p.dynamic_wins ?? 0)}V · {p.pvp_win_percentage ?? 0}% wr
+                </p>
+              </div>
+            </Link>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <Star size={14} className="text-amber-400" />
+              <span className="text-amber-300 font-bold">{p.pvp_points ?? 0}</span>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function BlitzTab({ rows, userId }: { rows: BlitzRow[]; userId: string | null }) {
+  if (rows.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <Timer size={32} className="text-gray-600 mx-auto mb-2" />
+        <p className="text-gray-400 text-sm">Aún nadie ganó duelos Blitz</p>
+      </div>
+    )
+  }
+  return (
+    <div className="space-y-2">
+      {rows.map((p, i) => {
+        const isMe = p.id === userId
+        const top = i < 3
+        return (
+          <div key={p.id}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 ${
+              isMe
+                ? 'bg-gradient-to-r from-purple-900/60 to-[#1a0a4e] border-purple-400/70'
+                : top
+                  ? 'bg-gradient-to-r from-orange-900/30 to-[#0f0a2e] border-orange-500/50'
+                  : 'bg-[#0f0a2e]/70 border-purple-800/30'
+            }`}
+          >
+            <div className="w-7 flex items-center justify-center">
+              {top ? <span className="text-lg">{['🥇','🥈','🥉'][i]}</span> : <span className="text-gray-400 text-xs font-bold">#{i+1}</span>}
+            </div>
+            <Link href={`/perfil/${p.username}`} className="flex items-center gap-3 flex-1 min-w-0 group">
+              <Avatar avatarUrl={p.avatar_url} firstName={p.first_name} size="sm" frame={p.frame} bg={p.avatar_bg} />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <p className={`font-semibold truncate ${isMe ? 'text-purple-200' : 'text-white'} group-hover:text-cyan-300`}>
+                    {p.first_name} {p.last_name}{isMe && <span className="text-purple-400 text-xs ml-2">(vos)</span>}
+                  </p>
+                  <PvpRankBadge rank={p.pvp_rank} size="xs" />
+                </div>
+                <p className="text-gray-400 text-xs">@{p.username} · {p.blitz_wins ?? 0}V</p>
+              </div>
+            </Link>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <Timer size={14} className="text-orange-300" />
+              <span className="text-orange-200 font-bold">{p.blitz_best_score ?? 0}</span>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function DynamicTab({ rows, userId }: { rows: DynamicRow[]; userId: string | null }) {
+  if (rows.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <Hourglass size={32} className="text-gray-600 mx-auto mb-2" />
+        <p className="text-gray-400 text-sm">Aún nadie ganó duelos Dinámicos</p>
+      </div>
+    )
+  }
+  return (
+    <div className="space-y-2">
+      {rows.map((p, i) => {
+        const isMe = p.id === userId
+        const top = i < 3
+        return (
+          <div key={p.id}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 ${
+              isMe
+                ? 'bg-gradient-to-r from-purple-900/60 to-[#1a0a4e] border-purple-400/70'
+                : top
+                  ? 'bg-gradient-to-r from-cyan-900/30 to-[#0f0a2e] border-cyan-500/50'
+                  : 'bg-[#0f0a2e]/70 border-purple-800/30'
+            }`}
+          >
+            <div className="w-7 flex items-center justify-center">
+              {top ? <span className="text-lg">{['🥇','🥈','🥉'][i]}</span> : <span className="text-gray-400 text-xs font-bold">#{i+1}</span>}
+            </div>
+            <Link href={`/perfil/${p.username}`} className="flex items-center gap-3 flex-1 min-w-0 group">
+              <Avatar avatarUrl={p.avatar_url} firstName={p.first_name} size="sm" frame={p.frame} bg={p.avatar_bg} />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <p className={`font-semibold truncate ${isMe ? 'text-purple-200' : 'text-white'} group-hover:text-cyan-300`}>
+                    {p.first_name} {p.last_name}{isMe && <span className="text-purple-400 text-xs ml-2">(vos)</span>}
+                  </p>
+                  <PvpRankBadge rank={p.pvp_rank} size="xs" />
+                </div>
+                <p className="text-gray-400 text-xs">@{p.username} · {p.dynamic_wins ?? 0}V</p>
+              </div>
+            </Link>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <Hourglass size={14} className="text-cyan-300" />
+              <span className="text-cyan-200 font-bold">{p.dynamic_best_time ?? 0}s</span>
+            </div>
+          </div>
+        )
+      })}
+    </div>
   )
 }
 
