@@ -157,7 +157,24 @@ export async function submitBlitzResult(
     ? { challenger_score: score, challenger_time_survived: timeSurvived, challenger_finished: true }
     : { opponent_score: score, opponent_time_survived: timeSurvived, opponent_finished: true }
 
-  await supabase.from('blitz_duels').update(updatePayload).eq('id', duelId)
+  console.log('[submitBlitzResult] update', { duelId, userId: user.id, isChallenger, payload: updatePayload })
+
+  const { data: updRow, error: updErr } = await supabase
+    .from('blitz_duels')
+    .update(updatePayload)
+    .eq('id', duelId)
+    .select('id, challenger_score, opponent_score, challenger_finished, opponent_finished, challenger_time_survived, opponent_time_survived')
+    .maybeSingle()
+
+  if (updErr) {
+    console.error('[submitBlitzResult] update FAIL:', updErr)
+    return blankErr(`Error al guardar puntaje: ${updErr.message}`)
+  }
+  if (!updRow) {
+    console.error('[submitBlitzResult] update no devolvió fila — posible RLS bloqueando o duelo inexistente')
+    return blankErr('No se pudo guardar el puntaje (RLS o duelo inexistente)')
+  }
+  console.log('[submitBlitzResult] update ✓ row:', updRow)
 
   // Re-fetch state to see if both done
   const { data: refreshed } = await supabase

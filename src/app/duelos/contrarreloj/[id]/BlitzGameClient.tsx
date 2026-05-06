@@ -73,7 +73,15 @@ export default function BlitzGameClient({ userId, duel: initialDuel, questions }
   const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null)
   const [selectedOpt, setSelectedOpt] = useState<Option | null>(null)
   const startedAtRef = useRef<number | null>(null)
-  const elapsedAtEndRef = useRef<number>(0)
+  const [elapsedAtEnd, setElapsedAtEnd] = useState(0)
+  // Refs para evitar stale closures en timers / efectos.
+  // Nota: estos refs NO se accionan desde JSX, solo desde callbacks asincrónicos.
+  const scoreRef = useRef(0)
+  const phaseRef = useRef<typeof phase>(phase)
+  const submittedRef = useRef(false)
+  const elapsedAtEndRef = useRef(0)
+  useEffect(() => { scoreRef.current = score }, [score])
+  useEffect(() => { phaseRef.current = phase }, [phase])
 
   // Result state
   const [resultData, setResultData] = useState<Awaited<ReturnType<typeof submitBlitzResult>> | null>(null)
@@ -81,6 +89,49 @@ export default function BlitzGameClient({ userId, duel: initialDuel, questions }
   const [rivalFell, setRivalFell] = useState(false)
 
   const currentQ = questions[questionIdx % Math.max(1, questions.length)]
+
+  // finishLocally lee state vía refs (scoreRef, phaseRef) — ningún render queda
+  // con un closure stale de score=0. Está declarado ANTES del timer effect.
+  function finishLocally(extraTimeSurvived: number) {
+    if (submittedRef.current) {
+      console.log('[blitz] finishLocally ignorado — ya enviado')
+      return
+    }
+    const ph = phaseRef.current
+    if (ph === 'submitting' || ph === 'waiting' || ph === 'finished') {
+      console.log('[blitz] finishLocally ignorado — phase=', ph)
+      return
+    }
+    submittedRef.current = true
+
+    const startedAt = startedAtRef.current ?? Date.now()
+    const elapsedSec = Math.round((Date.now() - startedAt) / 1000)
+    elapsedAtEndRef.current = elapsedSec
+    setElapsedAtEnd(elapsedSec)
+    setPhase('submitting')
+
+    const timeSurvived = duel.mode === 'blitz' ? elapsedSec : elapsedSec + extraTimeSurvived
+    const finalScore = scoreRef.current
+
+    console.log('[blitz] submitBlitzResult →', {
+      duelId: duel.id, mode: duel.mode, finalScore, timeSurvived, elapsedSec,
+    })
+
+    submitBlitzResult(duel.id, finalScore, timeSurvived).then(res => {
+      console.log('[blitz] submitBlitzResult ✓ resp:', res)
+      setResultData(res)
+      if (res.finished) {
+        setPhase('finished')
+        if (res.rankedUp) setTimeout(() => setShowRankUp(true), 600)
+      } else {
+        setPhase('waiting')
+      }
+    }).catch(err => {
+      console.error('[blitz] submitBlitzResult ERROR:', err)
+      submittedRef.current = false
+      setPhase('waiting')
+    })
+  }
 
   // ── Countdown ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -100,10 +151,12 @@ export default function BlitzGameClient({ userId, duel: initialDuel, questions }
   // ── Game timer (1Hz) ─────────────────────────────────────────────────────
   useEffect(() => {
     if (phase !== 'playing') return
+    console.log('[blitz] timer iniciado, mode=', duel.mode, 'duración=', duel.mode === 'blitz' ? BLITZ_DURATION : DYNAMIC_START)
     const id = setInterval(() => {
       setTimeLeft(t => {
         if (t <= 1) {
           clearInterval(id)
+          console.log('[blitz] timer expiró, score=', scoreRef.current)
           finishLocally(0)
           return 0
         }
@@ -111,8 +164,10 @@ export default function BlitzGameClient({ userId, duel: initialDuel, questions }
       })
     }, 1000)
     return () => clearInterval(id)
+  // finishLocally se redefine en cada render pero el compilador de React 19
+  // lo memoriza automáticamente; agregarlo a deps causaría loops.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase])
+  }, [phase, duel.mode])
 
   // ── Realtime: rival's status ─────────────────────────────────────────────
   useEffect(() => {
@@ -125,8 +180,6 @@ export default function BlitzGameClient({ userId, duel: initialDuel, questions }
         (payload) => {
           const incoming = payload.new as Partial<BlitzDuelRow>
           setDuel(prev => ({ ...prev, ...incoming, challenger: prev.challenger, opponent: prev.opponent }))
-          // Si el rival cayó (modo dynamic) o terminó (modo blitz) y yo aún juego,
-          // mostrar feedback sutil "rival cayó" — útil para dar urgencia.
           if (duel.mode === 'dynamic') {
             const oppFinished = isChallenger ? incoming.opponent_finished : incoming.challenger_finished
             const oppTime = isChallenger ? incoming.opponent_time_survived : incoming.challenger_time_survived
@@ -141,37 +194,17 @@ export default function BlitzGameClient({ userId, duel: initialDuel, questions }
     return () => { supabase.removeChannel(channel) }
   }, [duel.id, duel.mode, isChallenger, phase])
 
-  function finishLocally(extraTimeSurvived: number) {
-    if (phase === 'submitting' || phase === 'waiting' || phase === 'finished') return
-    const startedAt = startedAtRef.current ?? Date.now()
-    const elapsedSec = Math.round((Date.now() - startedAt) / 1000)
-    elapsedAtEndRef.current = elapsedSec
-    setPhase('submitting')
-
-    // En blitz, time survived = tiempo total invertido (para tie-breaker — menor gana)
-    // En dynamic, time survived = duración real hasta caer (mayor gana)
-    const timeSurvived = duel.mode === 'blitz' ? elapsedSec : elapsedSec + extraTimeSurvived
-    submitBlitzResult(duel.id, score, timeSurvived).then(res => {
-      setResultData(res)
-      if (res.finished) {
-        setPhase('finished')
-        if (res.rankedUp) setTimeout(() => setShowRankUp(true), 600)
-      } else {
-        setPhase('waiting')
-      }
-    }).catch(() => {
-      setPhase('waiting')
-    })
-  }
-
   // ── While waiting for opponent: poll the duel row ─────────────────────────
   useEffect(() => {
     if (phase !== 'waiting') return
     const supabase = createClient()
+    console.log('[blitz] entrando en wait-for-opponent (poll cada 2.5s)')
     const id = setInterval(async () => {
       const { data: fresh } = await supabase.from('blitz_duels').select('*').eq('id', duel.id).single()
+      console.log('[blitz] poll: status=', fresh?.status)
       if (fresh && fresh.status === 'finished') {
-        const final = await submitBlitzResult(duel.id, score, elapsedAtEndRef.current)
+        const final = await submitBlitzResult(duel.id, scoreRef.current, elapsedAtEndRef.current)
+        console.log('[blitz] poll: final result:', final)
         setResultData(final)
         setPhase('finished')
         if (final.rankedUp) setTimeout(() => setShowRankUp(true), 600)
@@ -179,7 +212,6 @@ export default function BlitzGameClient({ userId, duel: initialDuel, questions }
       }
     }, 2500)
     return () => clearInterval(id)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, duel.id])
 
   function handleAnswer(opt: Option) {
@@ -189,12 +221,18 @@ export default function BlitzGameClient({ userId, duel: initialDuel, questions }
     setFeedback(correct ? 'correct' : 'wrong')
     if (correct) {
       playSuccess()
-      setScore(s => s + 1)
+      setScore(s => {
+        const next = s + 1
+        scoreRef.current = next  // sincronizar inmediatamente para timers concurrentes
+        console.log('[blitz] respuesta CORRECTA, nuevo score=', next)
+        return next
+      })
       if (duel.mode === 'dynamic') {
         setTimeLeft(t => Math.min(99, t + DYNAMIC_GAIN))
       }
     } else {
       playError()
+      console.log('[blitz] respuesta INCORRECTA, score sigue en', scoreRef.current)
       if (duel.mode === 'dynamic') {
         setTimeLeft(t => {
           const next = t - DYNAMIC_LOSS
@@ -310,7 +348,7 @@ export default function BlitzGameClient({ userId, duel: initialDuel, questions }
                   <Avatar avatarUrl={me.avatar_url} firstName={me.first_name} size="md" frame={me.frame} bg={me.avatar_bg} className="mx-auto mb-1" />
                   <p className="text-white text-sm font-semibold">{me.first_name}</p>
                   <p className={`text-3xl font-extrabold mt-1 ${isWinner ? 'text-green-400' : 'text-white'}`}>{score}</p>
-                  {duel.mode === 'dynamic' && <p className="text-xs text-gray-500">{elapsedAtEndRef.current}s</p>}
+                  {duel.mode === 'dynamic' && <p className="text-xs text-gray-500">{elapsedAtEnd}s</p>}
                 </div>
                 <div className="flex flex-col items-center justify-center">
                   <Swords size={20} className="text-purple-400" />
