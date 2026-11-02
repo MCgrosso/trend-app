@@ -8,6 +8,8 @@ import BioEditor from './BioEditor'
 import ChurchSection from './ChurchSection'
 import EditModeWrapper from './EditModeWrapper'
 import FavoriteVerseEditor from './FavoriteVerseEditor'
+import CharacterPicker from './CharacterPicker'
+import { normalizeCharacter } from '@/lib/character'
 import ShareCardLauncher from './ShareCardLauncher'
 import { SPECIAL_AVATARS } from '@/lib/avatars'
 import { Star, Flame, Calendar, Shield, Swords, Trophy, Scroll, BookOpen, Zap, Timer, Hourglass } from 'lucide-react'
@@ -446,6 +448,11 @@ export default async function ProfilePage() {
                 userId={user.id}
                 initialVerse={profile?.favorite_verse ?? ''}
                 initialRef={profile?.favorite_verse_ref ?? ''}
+              />
+
+              <CharacterPicker
+                userId={user.id}
+                initialCharacter={normalizeCharacter(profile?.character)}
               />
 
               <ChurchSection

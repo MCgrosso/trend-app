@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Avatar from '@/components/Avatar'
+import FullBodyAvatar from '@/components/FullBodyAvatar'
+import { normalizeCharacter, type FullBodyState } from '@/lib/character'
 import Confetti from '@/components/Confetti'
 import { getTitle } from '@/lib/titles'
 import { submitDuelAnswer, checkAndFinishDuel, diagnoseDuelQuestions } from '../actions'
@@ -13,6 +15,7 @@ import { getAudioManager } from '@/lib/audioManager'
 
 interface DuelProfile {
   id: string; username: string; first_name: string; avatar_url: string | null; frame: string | null; avatar_bg: string | null; title: string | null
+  character?: string | null
 }
 
 interface QuestionData {
@@ -55,6 +58,37 @@ function getOptionText(q: QuestionData, opt: Option) {
   return { A: q.option_a, B: q.option_b, C: q.option_c, D: q.option_d }[opt]
 }
 
+/** Escenario con los dos personajes enfrentados (yo a la izquierda, rival espejado a la derecha). */
+function DuelStage({ me, opp, myState, oppState }: {
+  me: DuelProfile; opp: DuelProfile; myState: FullBodyState; oppState: FullBodyState
+}) {
+  return (
+    <div className="relative flex items-end justify-between px-1 pt-6 pb-2">
+      <div className="absolute inset-x-0 bottom-1 h-6 rounded-[50%] bg-gradient-to-r from-purple-900/0 via-purple-700/30 to-purple-900/0 blur-sm pointer-events-none" />
+      <FullBodyAvatar character={normalizeCharacter(me.character)} state={myState} from="left" />
+      <FullBodyAvatar character={normalizeCharacter(opp.character)} state={oppState} from="right" flip />
+    </div>
+  )
+}
+
+/** Cartel final: entran los dos y luego el ganador salta y el perdedor se agacha. */
+function ResultStage({ me, opp, outcome }: { me: DuelProfile; opp: DuelProfile; outcome: 'win' | 'lose' | 'draw' }) {
+  const [phase, setPhase] = useState<'enter' | 'react' | 'settle'>('enter')
+  useEffect(() => {
+    const t1 = setTimeout(() => setPhase('react'), 750)
+    const t2 = setTimeout(() => setPhase('settle'), 750 + 950)
+    return () => { clearTimeout(t1); clearTimeout(t2) }
+  }, [])
+  const stateFor = (mine: boolean): FullBodyState => {
+    if (phase === 'enter') return 'enter'
+    if (outcome === 'draw') return 'idle'
+    const won = mine ? outcome === 'win' : outcome === 'lose'
+    if (!won) return 'lose'              // se queda agachado y apagado
+    return phase === 'react' ? 'win' : 'idle'
+  }
+  return <DuelStage me={me} opp={opp} myState={stateFor(true)} oppState={stateFor(false)} />
+}
+
 function CircularTimer({ timeLeft, max = 20 }: { timeLeft: number; max?: number }) {
   const radius = 20; const circ = 2 * Math.PI * radius
   const offset = circ * (1 - timeLeft / max)
@@ -76,6 +110,22 @@ export default function DuelClient({ userId, duel: initialDuel, duelQuestions: i
   duelQuestions: DuelQuestionRow[]
 }) {
   const router = useRouter()
+
+  // ── Personajes de cuerpo entero ───────────────────────────────────────────
+  const [myAnim, setMyAnim]   = useState<FullBodyState>('enter')
+  const [oppAnim, setOppAnim] = useState<FullBodyState>('enter')
+  const animTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  function playAnims(mine: FullBodyState, theirs: FullBodyState, backToIdleMs: number | null) {
+    if (animTimerRef.current) clearTimeout(animTimerRef.current)
+    setMyAnim(mine); setOppAnim(theirs)
+    if (backToIdleMs !== null) {
+      animTimerRef.current = setTimeout(() => { setMyAnim('idle'); setOppAnim('idle') }, backToIdleMs)
+    }
+  }
+  useEffect(() => {
+    animTimerRef.current = setTimeout(() => { setMyAnim('idle'); setOppAnim('idle') }, 750)
+    return () => { if (animTimerRef.current) clearTimeout(animTimerRef.current) }
+  }, [])
 
   // Local state for duel — updated by realtime / polling so the results screen
   // re-renders the moment the opponent finishes.
@@ -328,6 +378,7 @@ export default function DuelClient({ userId, duel: initialDuel, duelQuestions: i
     if (isCorrect) {
       playSuccess()
       setCardAnim('answer-correct')
+      playAnims('win', 'hit', 950)
       setShowConfetti(true)
       setShowFloat(true)
       setMyScore(s => s + 1)
@@ -336,6 +387,7 @@ export default function DuelClient({ userId, duel: initialDuel, duelQuestions: i
     } else {
       playError()
       setCardAnim('answer-incorrect')
+      playAnims('hit', 'win', 950)
     }
     setTimeout(() => setCardAnim(''), 700)
 
@@ -437,6 +489,8 @@ export default function DuelClient({ userId, duel: initialDuel, duelQuestions: i
                 <p className="text-gray-400 text-sm mt-1">{isWinner ? '+20 puntos' : isDraw ? '+10 puntos cada uno' : '+5 puntos'}</p>
               </div>
 
+              <ResultStage me={me} opp={opp} outcome={isWinner ? 'win' : isDraw ? 'draw' : 'lose'} />
+
               {/* Score display */}
               <div className="flex items-center gap-4 bg-gray-800/50 border border-gray-700/40 rounded-2xl p-5">
                 <div className="flex-1 text-center">
@@ -519,6 +573,11 @@ export default function DuelClient({ userId, duel: initialDuel, duelQuestions: i
             )
           })}
         </div>
+      </div>
+
+      {/* Personajes */}
+      <div className="px-4 max-w-lg mx-auto">
+        <DuelStage me={me} opp={opp} myState={myAnim} oppState={oppAnim} />
       </div>
 
       {/* Question card */}

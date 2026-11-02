@@ -14,8 +14,8 @@ export default async function DuelPage({ params }: { params: Promise<{ id: strin
     .from('duels')
     .select(`
       *,
-      challenger:profiles!duels_challenger_id_fkey(id, username, first_name, avatar_url, frame, avatar_bg, title),
-      opponent:profiles!duels_opponent_id_fkey(id, username, first_name, avatar_url, frame, avatar_bg, title)
+      challenger:profiles!duels_challenger_id_fkey(id, username, first_name, avatar_url, frame, avatar_bg, title, character),
+      opponent:profiles!duels_opponent_id_fkey(id, username, first_name, avatar_url, frame, avatar_bg, title, character)
     `)
     .eq('id', id)
     .single()

@@ -678,3 +678,56 @@ body {
   background-size: 400px 100%;
   animation: speed-lines-slide 3.6s linear infinite;
 }
+
+/* ── FullBodyAvatar (personajes LPC de cuerpo entero) ─────────────────────── */
+.fullbody-body { transform-origin: 50% 100%; will-change: transform, opacity; }
+
+@keyframes fb-idle {
+  0%, 100% { transform: scale(1, 1); }
+  50%      { transform: scale(1.015, 0.975); }
+}
+.fullbody-idle .fullbody-body { animation: fb-idle 2.4s ease-in-out infinite; }
+
+@keyframes fb-win {
+  0%   { transform: translateY(0) rotateY(0deg) scale(1, 1); }
+  15%  { transform: translateY(0) rotateY(0deg) scale(1.08, 0.88); }
+  50%  { transform: translateY(-28%) rotateY(180deg) scale(0.95, 1.06); }
+  80%  { transform: translateY(0) rotateY(360deg) scale(1.06, 0.92); }
+  100% { transform: translateY(0) rotateY(360deg) scale(1, 1); }
+}
+@keyframes fb-win-shadow {
+  0%, 15%, 80%, 100% { transform: scale(1); opacity: 1; }
+  50%                { transform: scale(0.6); opacity: 0.5; }
+}
+.fullbody-win .fullbody-body   { animation: fb-win 0.9s cubic-bezier(0.3, 0.7, 0.4, 1) both; }
+.fullbody-win .fullbody-shadow { animation: fb-win-shadow 0.9s cubic-bezier(0.3, 0.7, 0.4, 1) both; }
+
+@keyframes fb-lose {
+  0%   { transform: scale(1, 1);       opacity: 1; filter: grayscale(0); }
+  100% { transform: scale(1.06, 0.8);  opacity: 0.5; filter: grayscale(0.6); }
+}
+.fullbody-lose .fullbody-body { animation: fb-lose 0.8s ease-out forwards; }
+
+@keyframes fb-hit {
+  0%   { transform: translateX(0) rotate(0deg); filter: none; }
+  12%  { transform: translateX(calc(var(--fb-back) * 14%)) rotate(calc(var(--fb-back) * 8deg)); filter: brightness(1.8) sepia(1) hue-rotate(-50deg) saturate(4); }
+  24%  { transform: translateX(calc(var(--fb-back) * 8%))  rotate(calc(var(--fb-back) * 3deg)); }
+  36%  { transform: translateX(calc(var(--fb-back) * 12%)) rotate(calc(var(--fb-back) * 6deg)); filter: none; }
+  48%  { transform: translateX(calc(var(--fb-back) * 6%))  rotate(calc(var(--fb-back) * 2deg)); }
+  60%  { transform: translateX(calc(var(--fb-back) * 9%))  rotate(calc(var(--fb-back) * 4deg)); }
+  100% { transform: translateX(0) rotate(0deg); filter: none; }
+}
+.fullbody-hit .fullbody-body { animation: fb-hit 0.6s ease-out both; }
+
+@keyframes fb-enter {
+  0%   { transform: translateX(calc(var(--fb-enter-from, -1) * 140%)); opacity: 0; }
+  70%  { transform: translateX(calc(var(--fb-enter-from, -1) * -6%));  opacity: 1; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+.fullbody-enter .fullbody-body,
+.fullbody-enter .fullbody-shadow { animation: fb-enter 0.7s cubic-bezier(0.2, 0.8, 0.3, 1) both; }
+.fullbody-from-right { --fb-enter-from: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .fullbody .fullbody-body, .fullbody .fullbody-shadow { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+}
