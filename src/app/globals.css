@@ -728,6 +728,34 @@ body {
 .fullbody-enter .fullbody-shadow { animation: fb-enter 0.7s cubic-bezier(0.2, 0.8, 0.3, 1) both; }
 .fullbody-from-right { --fb-enter-from: 1; }
 
+/* acierto (respaldo sin spritesheet): mismo festejo que antes */
+.fullbody-attack .fullbody-body   { animation: fb-win 0.9s cubic-bezier(0.3, 0.7, 0.4, 1) both; }
+.fullbody-attack .fullbody-shadow { animation: fb-win-shadow 0.9s cubic-bezier(0.3, 0.7, 0.4, 1) both; }
+
+/* ── Spritesheet por cuadros (los valores llegan por variables inline) ──── */
+@keyframes fb-sheet {
+  from { background-position-x: var(--fb-x0); }
+  to   { background-position-x: var(--fb-x1); }
+}
+/* Con sprite, el movimiento lo dan los cuadros: se apagan las deformaciones
+   del respaldo y quedan solo los efectos que suman (retroceso, entrada, fundido). */
+.fullbody-sprite.fullbody-idle .fullbody-body,
+.fullbody-sprite.fullbody-win .fullbody-body,
+.fullbody-sprite.fullbody-win .fullbody-shadow,
+.fullbody-sprite.fullbody-attack .fullbody-shadow { animation: none; }
+
+@keyframes fb-lunge {
+  0%, 100% { transform: translateX(0); }
+  45%      { transform: translateX(calc(var(--fb-back) * -10%)); }
+}
+.fullbody-sprite.fullbody-attack .fullbody-body { animation: fb-lunge 0.7s ease-in-out both; }
+
+@keyframes fb-lose-fade {
+  from { opacity: 1;   filter: grayscale(0); }
+  to   { opacity: 0.6; filter: grayscale(0.6); }
+}
+.fullbody-sprite.fullbody-lose .fullbody-body { animation: fb-lose-fade 0.8s ease-out forwards; }
+
 @media (prefers-reduced-motion: reduce) {
-  .fullbody .fullbody-body, .fullbody .fullbody-shadow { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+  .fullbody .fullbody-body, .fullbody .fullbody-shadow, .fullbody .fullbody-frames { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
 }

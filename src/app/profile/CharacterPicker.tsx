@@ -69,7 +69,7 @@ export default function CharacterPicker({
                   <Check size={12} className="text-[#0a071e]" />
                 </span>
               )}
-              <FullBodyAvatar character={opt.value} state={active ? anim : 'idle'} scale={2} />
+              <FullBodyAvatar character={opt.value} state={active ? anim : 'idle'} scale={2} facing="down" />
               <span className={`text-sm font-semibold ${active ? 'text-amber-300' : 'text-gray-300'}`}>{opt.label}</span>
             </button>
           )

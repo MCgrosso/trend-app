@@ -378,7 +378,7 @@ export default function DuelClient({ userId, duel: initialDuel, duelQuestions: i
     if (isCorrect) {
       playSuccess()
       setCardAnim('answer-correct')
-      playAnims('win', 'hit', 950)
+      playAnims('attack', 'hit', 950)
       setShowConfetti(true)
       setShowFloat(true)
       setMyScore(s => s + 1)
@@ -387,7 +387,7 @@ export default function DuelClient({ userId, duel: initialDuel, duelQuestions: i
     } else {
       playError()
       setCardAnim('answer-incorrect')
-      playAnims('hit', 'win', 950)
+      playAnims('hit', 'attack', 950)
     }
     setTimeout(() => setCardAnim(''), 700)
 
